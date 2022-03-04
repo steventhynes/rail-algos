@@ -1,12 +1,22 @@
+from posixpath import split
 import networkx as nx
 from collections import deque
 
-cities = {}
-
 # Utility/helper functions
 
-def city_import(file):
-    pass
+def cities_from_file(filename):
+    cities = []
+    with open(filename, 'r') as cityfile:
+        lines = cityfile.readlines()
+        for line in lines[1:]:
+            new_city = {}
+            splitline = line.strip.split(',')
+            new_city['name'], new_city['state'] = splitline[:2]
+            new_city['population'] = int(splitline[2])
+            new_city['lat'] = float(splitline[3])
+            new_city['lon'] = float(splitline[4])
+            cities.append(new_city)
+    return cities
 
 # from the list of cities, build the graph with no edges (the empty solution) (O(n) time)
 def empty_solution(cities):
@@ -33,7 +43,7 @@ def evaluate_solution(graph):
     for i in graph.nodes:
         for j in graph.nodes:
             if i is not j:
-                score += (i["weight"] * j["weight"]) / all_pairs_shortest_paths[i][j] # multiplied weights of cities divided by distance between them
+                score += (i["population"] * j["population"]) / all_pairs_shortest_paths[i][j] # multiplied weights of cities divided by distance between them
     return score
 
 
@@ -56,10 +66,6 @@ def greedy_buildup(cities, k):
         if cost > k:
             return prev_sol
     return curr_sol
-
-
-
-    
 
 # Find shortest path spanning trees (Dijkstra) for highest-weighted trees until k miles is reached.
 def shortest_path_spanning_tree_buildup(cities, k):
