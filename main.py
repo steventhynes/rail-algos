@@ -1,4 +1,5 @@
 import networkx as nx
+from collections import deque
 
 cities = {}
 
@@ -39,45 +40,55 @@ def evaluate_solution(graph):
 # Algorithms
 
 # continually add shortest edges until k miles is reached.
-# If k=inf, then keep going until score starts decreasing
-def mst_buildup(cities, k="inf"):
-    pass
+def greedy_buildup(cities, k):
+    empty = empty_solution(cities)
+    complete = complete_solution(cities)
+    sorted_edges = deque(sorted(complete.edges, key=lambda x: x["dist"]))
+    prev_sol = None
+    curr_sol = empty
+    cost = 0.0
+    while sorted_edges:
+        prev_sol = curr_sol
+        curr_sol = curr_sol.copy()
+        new_edge = sorted_edges.popleft()
+        curr_sol.add_weighted_edges_from([new_edge])
+        cost += new_edge["dist"]
+        if cost > k:
+            return prev_sol
+    return curr_sol
+
+
+
+    
 
 # Find shortest path spanning trees (Dijkstra) for highest-weighted trees until k miles is reached.
-# If k=inf, then keep going until score starts decreasing
-def shortest_path_spanning_tree_buildup(cities, k="inf"):
+def shortest_path_spanning_tree_buildup(cities, k):
     pass
 
 # Start with empty set of edges and build up to a solution, eliminating bad ones along the way.
-# If k=inf, then don't disqualify solutions based on k
-def backtracking(cities, k="inf"):
+def backtracking(cities, k):
     pass
 
 # Start with all possible solutions and systematically eliminate them by keeping a running maximum
 # score and eliminating candidates via their upper bound.
-# If k=inf, then don't disqualify solutions based on k
-def branch_and_bound(cities, k="inf"):
+def branch_and_bound(cities, k):
     pass
 
 # Local search with a perturbation when a local optimum is found. Perturbation is made to be orthogonal
 # to previous local minima.
-# If k=inf, then don't disqualify solutions based on k
-def iterated_local_search(cities, timeout, k="inf"):
+def iterated_local_search(cities, timeout, k):
     pass
 
 # Local search with a steadily decreasing chance to perturb to a random solution
-# If k=inf, then don't disqualify solutions based on k
-def simulated_annealing(cities, timeout, k="inf"):
+def simulated_annealing(cities, timeout, k):
     pass
 
 # Local search that allows for worsening moves at local optima, and keeps a record of previously-visited states
-# If k=inf, then don't disqualify solutions based on k
-def tabu_search(cities, timeout, k="inf"):
+def tabu_search(cities, timeout, k):
     pass
 
 # Local search inspired by evolution
-# If k=inf, then don't disqualify solutions based on k
-def genetic_algorithm(cities, timeout, k="inf"):
+def genetic_algorithm(cities, timeout, k):
     pass
 
 # read in args and stuff
