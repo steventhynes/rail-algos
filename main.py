@@ -1,4 +1,4 @@
-from posixpath import split
+from cmath import inf
 import networkx as nx
 from collections import deque
 
@@ -10,12 +10,12 @@ def cities_from_file(filename):
         lines = cityfile.readlines()
         for line in lines[1:]:
             new_city = {}
-            splitline = line.strip.split(',')
+            splitline = line.strip().split(',')
             new_city['name'], new_city['state'] = splitline[:2]
             new_city['population'] = int(splitline[2])
             new_city['lat'] = float(splitline[3])
             new_city['lon'] = float(splitline[4])
-            cities.append(new_city)
+            cities.append(('{}, {}'.format(new_city['name'], new_city["state"]), new_city))
     return cities
 
 # from the list of cities, build the graph with no edges (the empty solution) (O(n) time)
@@ -28,22 +28,25 @@ def empty_solution(cities):
 def complete_solution(cities):
     graph = empty_solution(cities)
     edges_to_add = []
+    visited_edges = set()
     for i in graph.nodes:
         for j in graph.nodes:
-            if i is not j:
-                dist = ((i["lat"] - j["lat"]) ** 2 + (i["lon"] - j["lon"]) ** 2) ** 0.5
+            if i is not j and (i, j) not in visited_edges:
+                dist = ((graph.nodes[i]["lat"] - graph.nodes[j]["lat"]) ** 2 + (graph.nodes[i]["lon"] - graph.nodes[j]["lon"]) ** 2) ** 0.5
                 edges_to_add.append((i, j, dist))
+                visited_edges.add((i, j))
+                visited_edges.add((j, i))
     graph.add_weighted_edges_from(edges_to_add, weight="dist")
     return graph
 
 # given the solution edges in the graph, calculate the score (O(n^3) time)
 def evaluate_solution(graph):
-    all_pairs_shortest_paths = nx.all_pairs_shortest_path_length(graph)
+    all_pairs_shortest_paths = nx.floyd_warshall(graph, weight="dist") # This WILL need to be optimized or approximated; takes way too long
     score = 0.0
     for i in graph.nodes:
         for j in graph.nodes:
-            if i is not j:
-                score += (i["population"] * j["population"]) / all_pairs_shortest_paths[i][j] # multiplied weights of cities divided by distance between them
+            if i is not j and all_pairs_shortest_paths[i][j] < inf:
+                score += (graph.nodes[i]["population"] * graph.nodes[j]["population"]) / all_pairs_shortest_paths[i][j] # multiplied weights of cities divided by distance between them
     return score
 
 
