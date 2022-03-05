@@ -39,14 +39,20 @@ def complete_solution(cities):
     graph.add_weighted_edges_from(edges_to_add, weight="dist")
     return graph
 
+# Gets only the connected nodes and gets the all-pairs distance between them
+def all_pairs_shortest_paths(graph):
+    connected_nodes = [node for node in graph.nodes if graph.edges(node)]
+    new_graph = nx.induced_subgraph(graph, connected_nodes)
+    return nx.floyd_warshall(new_graph, weight='dist')
+
 # given the solution edges in the graph, calculate the score (O(n^3) time)
 def evaluate_solution(graph):
-    all_pairs_shortest_paths = nx.floyd_warshall(graph, weight="dist") # This WILL need to be optimized or approximated; takes way too long
+    apsp = all_pairs_shortest_paths(graph) # This WILL need to be optimized or approximated; takes way too long
     score = 0.0
-    for i in graph.nodes:
-        for j in graph.nodes:
-            if i is not j and all_pairs_shortest_paths[i][j] < inf:
-                score += (graph.nodes[i]["population"] * graph.nodes[j]["population"]) / all_pairs_shortest_paths[i][j] # multiplied weights of cities divided by distance between them
+    for i in apsp:
+        for j in apsp[i]:
+            if i is not j and apsp[i][j] < inf:
+                score += (graph.nodes[i]["population"] * graph.nodes[j]["population"]) / apsp[i][j] # multiplied weights of cities divided by distance between them
     return score
 
 
