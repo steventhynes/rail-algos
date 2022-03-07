@@ -1,6 +1,7 @@
 from cmath import inf
 import networkx as nx
 from collections import deque
+import plotly.graph_objects as go
 
 # Utility/helper functions
 
@@ -54,6 +55,37 @@ def evaluate_solution(graph):
             if i is not j and apsp[i][j] < inf:
                 score += (graph.nodes[i]["population"] * graph.nodes[j]["population"]) / apsp[i][j] # multiplied weights of cities divided by distance between them
     return score
+
+# display the solution in a map
+def display_solution(graph):
+    fig = go.Figure()
+    fig.add_trace(go.Scattergeo(
+    locationmode = 'USA-states',
+    lon = [graph.nodes[node]['lon'] for node in graph.nodes],
+    lat = [graph.nodes[node]['lat'] for node in graph.nodes],
+    hoverinfo = 'text',
+    text = [node for node in graph.nodes],
+    mode = 'markers',
+    marker = dict(
+        size = 2,
+        color = 'rgb(255, 0, 0)',
+        line = dict(
+            width = 3,
+            color = 'rgba(68, 68, 68, 0)'
+        )
+    )))
+    for edge in graph.edges:
+        fig.add_trace(
+            go.Scattergeo(
+                locationmode = 'USA-states',
+                lon = [graph.nodes[edge[0]]['lon'], graph.nodes[edge[1]]['lon']],
+                lat = [graph.nodes[edge[0]]['lat'], graph.nodes[edge[1]]['lat']],
+                mode = 'lines',
+                line = dict(width = 1,color = 'red'),
+                opacity = 1,
+            )
+        )
+    fig.show()
 
 
 # Algorithms
