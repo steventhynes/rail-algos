@@ -110,7 +110,23 @@ def greedy_buildup(cities, k):
 
 # use knapsack algorithm to add highest-weight edges up to k distance
 def knapsack_buildup(cities, k):
-    pass
+    empty = empty_solution(cities)
+    complete = complete_solution(cities)
+    edges = complete.edges.data()
+    table = [[0 for num in range(k+1)] for edge in range(len(edges)+1)] # table[i][j] is the maximum sum of edges[1...i] summing to at most j distance
+    # fill out table
+    for i in range(len(table))[1:]:
+        for j in range(len(table[0]))[1:]:
+            dist = edges[i-1]['dist']
+            score = (complete.nodes[edges[i-1][0]]['population'] * complete.nodes[edges[i-1][1]]['population']) / (dist ** 2)
+            if dist > j:
+                table[i, j] = table[i-1, j]
+            else:
+                table[i, j] = max(table[i-1, j], table[i-1, j-dist] + score)
+    # backtrack to get edge set
+
+    
+    
 
 # Find shortest path spanning trees (Dijkstra) for highest-weighted trees until k miles is reached.
 def shortest_path_spanning_tree_buildup(cities, k):
