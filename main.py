@@ -108,6 +108,10 @@ def greedy_buildup(cities, k):
             return prev_sol
     return curr_sol
 
+# use knapsack algorithm to add highest-weight edges up to k distance
+def knapsack_buildup(cities, k):
+    pass
+
 # Find shortest path spanning trees (Dijkstra) for highest-weighted trees until k miles is reached.
 def shortest_path_spanning_tree_buildup(cities, k):
     pass
