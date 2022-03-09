@@ -1,4 +1,5 @@
 from cmath import inf
+from math import ceil
 import networkx as nx
 from collections import deque
 import plotly.graph_objects as go
@@ -108,26 +109,37 @@ def greedy_buildup(cities, k):
             return prev_sol
     return curr_sol
 
-# use knapsack algorithm to add highest-weight edges up to k distance
+# use 0-1 knapsack algorithm to add highest-weight edges up to k distance. O(n^2 * k) pseudo-polynomial time.
 def knapsack_buildup(cities, k):
     empty = empty_solution(cities)
     complete = complete_solution(cities)
-    edges = complete.edges.data()
+    edges = list(complete.edges.data())
     table = [[0 for num in range(k+1)] for edge in range(len(edges)+1)] # table[i][j] is the maximum sum of edges[1...i] summing to at most j distance
     # fill out table
     for i in range(len(table))[1:]:
         for j in range(len(table[0]))[1:]:
-            dist = edges[i-1]['dist']
+            dist = ceil(edges[i-1][2]['dist'])
             score = (complete.nodes[edges[i-1][0]]['population'] * complete.nodes[edges[i-1][1]]['population']) / (dist ** 2)
             if dist > j:
-                table[i, j] = table[i-1, j]
+                table[i][j] = table[i-1][j]
             else:
-                table[i, j] = max(table[i-1, j], table[i-1, j-dist] + score)
+                table[i][j] = max(table[i-1][j], table[i-1][j-dist] + score)
     # backtrack to get edge set
+    i = len(edges)
+    j = k
+    to_return = empty
+    while True:
+        if i == 0:
+            break
+        if table[i][j] > table[i-1][j] and j >= ceil(edges[i-1][2]['dist']): # If this item was used
+            to_return.add_weighted_edges_from([edges[i-1]])
+            j -= ceil(edges[i-1][2]['dist'])
+            i -= 1
+        else:
+            i -= 1 # if this item was not used
+    return to_return
 
     
-    
-
 # Find shortest path spanning trees (Dijkstra) for highest-weighted trees until k miles is reached.
 def shortest_path_spanning_tree_buildup(cities, k):
     pass
