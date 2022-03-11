@@ -1,4 +1,6 @@
 from cmath import inf
+from copy import deepcopy
+from hashlib import new
 import networkx as nx
 from collections import deque
 import plotly.graph_objects as go
@@ -46,15 +48,32 @@ def all_pairs_shortest_paths(graph):
     new_graph = nx.induced_subgraph(graph, connected_nodes)
     return nx.floyd_warshall(new_graph, weight='dist')
 
-# given the solution edges in the graph, calculate the score (O(n^3) time)
+# given the solution edges in the graph, return the score and shortest paths dict (O(n^3) time)
 def evaluate_solution(graph):
-    apsp = all_pairs_shortest_paths(graph) # This WILL need to be optimized or approximated; takes way too long
+    apsp = all_pairs_shortest_paths(graph)
     score = 0.0
     for i in apsp:
         for j in apsp[i]:
             if i is not j and apsp[i][j] < inf:
                 score += (graph.nodes[i]["population"] * graph.nodes[j]["population"]) / apsp[i][j] # multiplied weights of cities divided by distance between them
-    return score
+    return score, apsp
+
+# given a solution evaluation from a previous state, and changes from the previous state, calculate the new score and shortest paths dict
+def evaluate_solution_from_prev(prev_apsp, prev_score, new_edges, removed_edges):
+    new_apsp = {}
+    for new_edge in new_edges:
+        endpoint1, endpoint2 = new_edge[:2]
+        for node1 in prev_apsp:
+            new_apsp[node1] = {}
+            new_apsp[node1][endpoint1] = min(prev_apsp[node1][endpoint1], prev_apsp[node1][endpoint2] + new_edge[2]['dist'])
+            new_apsp[node1][endpoint2] = min(prev_apsp[node1][endpoint2], prev_apsp[node1][endpoint1] + new_edge[2]['dist'])
+            for node2 in prev_apsp[node1]:
+                new_apsp[endpoint1][node2] = min(prev_apsp[endpoint1][node2], prev_apsp[endpoint2][node2] + new_edge[2]['dist'])
+                new_apsp[endpoint2][node2] = min(prev_apsp[endpoint2][node2], prev_apsp[endpoint1][node2] + new_edge[2]['dist'])
+                new_apsp[node1][node2] = min(prev_apsp[node1][node2], new_apsp[node1][endpoint1] + new_edge[2]['dist'] + new_apsp[endpoint2][node2], new_apsp[node1][endpoint2] + new_edge[2]['dist'] + new_apsp[endpoint1][node2])
+    for removed_edge in removed_edges:
+        endpoint1, endpoint2 = new_edge[:2]
+
 
 # display the solution in a map
 def display_solution(graph):
