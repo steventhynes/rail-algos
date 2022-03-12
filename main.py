@@ -59,20 +59,39 @@ def evaluate_solution(graph):
     return score, apsp
 
 # given a solution evaluation from a previous state, and changes from the previous state, calculate the new score and shortest paths dict
-def evaluate_solution_from_prev(prev_apsp, prev_score, new_edges, removed_edges):
+def evaluate_solution_from_prev(prev_apsp, new_graph, new_edges, removed_edges):
     new_apsp = {}
+    new_score = 0.0
+    if not new_edges:
+        new_apsp = prev_apsp
     for new_edge in new_edges:
         endpoint1, endpoint2 = new_edge[:2]
         for node1 in prev_apsp:
-            new_apsp[node1] = {}
+            if node1 not in new_apsp:
+                new_apsp[node1] = {}
             new_apsp[node1][endpoint1] = min(prev_apsp[node1][endpoint1], prev_apsp[node1][endpoint2] + new_edge[2]['dist'])
             new_apsp[node1][endpoint2] = min(prev_apsp[node1][endpoint2], prev_apsp[node1][endpoint1] + new_edge[2]['dist'])
             for node2 in prev_apsp[node1]:
+                if endpoint1 not in new_apsp:
+                    new_apsp[endpoint1] = {}
+                if endpoint2 not in new_apsp:
+                    new_apsp[endpoint2] = {}
                 new_apsp[endpoint1][node2] = min(prev_apsp[endpoint1][node2], prev_apsp[endpoint2][node2] + new_edge[2]['dist'])
                 new_apsp[endpoint2][node2] = min(prev_apsp[endpoint2][node2], prev_apsp[endpoint1][node2] + new_edge[2]['dist'])
                 new_apsp[node1][node2] = min(prev_apsp[node1][node2], new_apsp[node1][endpoint1] + new_edge[2]['dist'] + new_apsp[endpoint2][node2], new_apsp[node1][endpoint2] + new_edge[2]['dist'] + new_apsp[endpoint1][node2])
     for removed_edge in removed_edges:
         endpoint1, endpoint2 = new_edge[:2]
+        for node1 in prev_apsp:
+            for node2 in prev_apsp:
+                if prev_apsp[node1][node2] != min(prev_apsp[node1][endpoint1] + removed_edge[2]['dist'] + prev_apsp[endpoint2][node2], prev_apsp[node1][endpoint2] + removed_edge[2]['dist'] + prev_apsp[endpoint1][node2]):
+                    new_apsp[node1][node2] = prev_apsp[node1][node2]
+                else:
+                    pass
+    for node1 in prev_apsp:
+        for node2 in prev_apsp[node1]:
+            new_score += (new_graph.nodes[node1]['population'] * new_graph.nodes[node2]['population']) / (new_apsp[node1][node2] ** 2)
+
+
 
 
 # display the solution in a map
