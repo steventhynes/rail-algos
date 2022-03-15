@@ -54,7 +54,7 @@ def evaluate_solution(graph):
         for j in apsp[i]:
             if i is not j and apsp[i][j] < inf:
                 score += (graph.nodes[i]["population"] * graph.nodes[j]["population"]) / apsp[i][j] # multiplied weights of cities divided by distance between them
-    return score
+    return apsp, score
 
 # Add an edge to the graph and evaluate the solution more efficiently based on previous all-pairs-shortest-path length dict. O(n^2).
 def add_edge_and_eval(graph, new_edge, prev_apsp):
