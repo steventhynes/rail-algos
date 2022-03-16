@@ -65,16 +65,19 @@ def add_edge_and_eval(graph, new_edge, prev_apsp):
     endpoint1, endpoint2 = new_edge[:2]
     for node in connected_nodes:
         new_apsp[endpoint1][node] = min(prev_apsp[endpoint1][node], prev_apsp[endpoint2][node] + new_edge[2]['dist'])
-        new_score += (graph.nodes[endpoint1]["population"] * graph.nodes[node]["population"]) / new_apsp[endpoint1][node]
+        if endpoint1 != node:
+            new_score += (graph.nodes[endpoint1]["population"] * graph.nodes[node]["population"]) / new_apsp[endpoint1][node]
         new_apsp[endpoint2][node] = min(prev_apsp[endpoint2][node], prev_apsp[endpoint1][node] + new_edge[2]['dist'])
-        new_score += (graph.nodes[endpoint2]["population"] * graph.nodes[node]["population"]) / new_apsp[endpoint2][node]
+        if endpoint2 != node:
+            new_score += (graph.nodes[endpoint2]["population"] * graph.nodes[node]["population"]) / new_apsp[endpoint2][node]
     for node1 in connected_nodes:
         if node1 in [endpoint1, endpoint2]:
             continue
         for node2 in connected_nodes:
             new_apsp[node1][node2] = min(prev_apsp[node1][node2], new_apsp[endpoint1][node1] + new_edge[2]['dist'] + new_apsp[endpoint2][node2],
                                         new_apsp[endpoint1][node2] + new_edge[2]['dist'] + new_apsp[endpoint2][node1])
-            new_score += (graph.nodes[node1]["population"] * graph.nodes[node2]["population"]) / new_apsp[node1][node2]
+            if node1 is not node2:
+                new_score += (graph.nodes[node1]["population"] * graph.nodes[node2]["population"]) / new_apsp[node1][node2]
     return graph, new_apsp, new_score
             
 
