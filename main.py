@@ -80,7 +80,24 @@ def add_edge_and_eval(graph, new_edge, prev_apsp):
                 new_score += (graph.nodes[node1]["population"] * graph.nodes[node2]["population"]) / new_apsp[node1][node2]
     return graph, new_apsp, new_score
             
-
+def remove_edge_and_eval(graph, edge_to_remove, prev_apsp):
+    connected_nodes = [node for node in graph.nodes if graph.edges(node)]
+    endpoint1, endpoint2 = edge_to_remove[:2]
+    graph.remove_edge(endpoint1, endpoint2)
+    new_apsp = prev_apsp # copy?
+    new_score = 0.0
+    for node1 in connected_nodes:
+        for node2 in connected_nodes:
+            if prev_apsp[node1][node2] == min(prev_apsp[node1][endpoint1] + edge_to_remove[2]['dist'] + prev_apsp[node2][endpoint2], prev_apsp[node1][endpoint2] + edge_to_remove[2]['dist'] + prev_apsp[node2][endpoint1]):
+                try:
+                    new_apsp[node1][node2] = nx.shortest_path_length(graph, node1, node2, weight='dist')
+                except nx.exception.NetworkXNoPath:
+                    new_apsp[node1][node2] = inf
+            else:
+                new_apsp[node1][node2] = prev_apsp[node1][node2]
+            if node1 is not node2:
+                new_score += (graph.nodes[node1]["population"] * graph.nodes[node2]["population"]) / new_apsp[node1][node2]
+    return graph, new_apsp, new_score
 
 # display the solution in a map
 def display_solution(graph):
