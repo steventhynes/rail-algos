@@ -127,7 +127,6 @@ def max_weight_spanning_tree_buildup(cities, k):
             cost += new_edge[2]['dist']
             if cost > k:
                 curr_sol.remove_edge(new_edge[0], new_edge[1])
-                curr_sol.remove_edge
                 return curr_sol
     while leftover_edges:
         new_edge = leftover_edges.popleft()
@@ -156,7 +155,6 @@ def min_dist_spanning_tree_buildup(cities, k):
             cost += new_edge[2]['dist']
             if cost > k:
                 curr_sol.remove_edge(new_edge[0], new_edge[1])
-                curr_sol.remove_edge
                 return curr_sol
     while leftover_edges:
         new_edge = leftover_edges.popleft()
