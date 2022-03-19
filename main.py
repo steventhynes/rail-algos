@@ -109,8 +109,8 @@ def greedy_buildup(cities, k):
             return prev_sol
     return curr_sol
 
-# Build a maximum weight spanning tree, then add edges until k distance is reached
-def max_weight_spanning_tree_buildup(cities, k):
+# Build a maximum weight spanning tree, then add edges until k distance is reached. If quit is True, exits once spanning tree is reached.
+def max_weight_spanning_tree_buildup(cities, k, quit=False):
     curr_sol = empty_solution(cities)
     complete = complete_solution(cities)
     sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: (complete.nodes[x[0]]['population'] * complete.nodes[x[1]]['population']) / (x[2]['dist'] ** 2), reverse=True))
@@ -128,17 +128,18 @@ def max_weight_spanning_tree_buildup(cities, k):
             if cost > k:
                 curr_sol.remove_edge(new_edge[0], new_edge[1])
                 return curr_sol
-    while leftover_edges:
-        new_edge = leftover_edges.popleft()
-        curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
-        cost += new_edge[2]['dist']
-        if cost > k:
-            curr_sol.remove_edge(new_edge[0], new_edge[1])
-            return curr_sol
+    if not quit:
+        while leftover_edges:
+            new_edge = leftover_edges.popleft()
+            curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+            cost += new_edge[2]['dist']
+            if cost > k:
+                curr_sol.remove_edge(new_edge[0], new_edge[1])
+                return curr_sol
     return curr_sol
 
-# Build a minimum distance spanning tree, then add edges until k distance is reached 
-def min_dist_spanning_tree_buildup(cities, k):
+# Build a minimum distance spanning tree, then add edges until k distance is reached. If quit is True, exits once spanning tree is reached.
+def min_dist_spanning_tree_buildup(cities, k, quit=False):
     curr_sol = empty_solution(cities)
     complete = complete_solution(cities)
     sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: x[2]['dist']))
@@ -156,13 +157,14 @@ def min_dist_spanning_tree_buildup(cities, k):
             if cost > k:
                 curr_sol.remove_edge(new_edge[0], new_edge[1])
                 return curr_sol
-    while leftover_edges:
-        new_edge = leftover_edges.popleft()
-        curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
-        cost += new_edge[2]['dist']
-        if cost > k:
-            curr_sol.remove_edge(new_edge[0], new_edge[1])
-            return curr_sol
+    if not quit:
+        while leftover_edges:
+            new_edge = leftover_edges.popleft()
+            curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+            cost += new_edge[2]['dist']
+            if cost > k:
+                curr_sol.remove_edge(new_edge[0], new_edge[1])
+                return curr_sol
     return curr_sol
 
 
