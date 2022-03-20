@@ -2,6 +2,7 @@ from cmath import inf
 import networkx as nx
 from collections import deque
 import plotly.graph_objects as go
+import disjoint_set as ds
 
 # Utility/helper functions
 
@@ -107,6 +108,65 @@ def greedy_buildup(cities, k):
         if cost > k:
             return prev_sol
     return curr_sol
+
+# Build a maximum weight spanning tree, then add edges until k distance is reached. If quit is True, exits once spanning tree is reached.
+def max_weight_spanning_tree_buildup(cities, k, quit=False):
+    curr_sol = empty_solution(cities)
+    complete = complete_solution(cities)
+    sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: (complete.nodes[x[0]]['population'] * complete.nodes[x[1]]['population']) / (x[2]['dist'] ** 2), reverse=True))
+    cost = 0.0
+    leftover_edges = deque()
+    disj_set = ds.DisjointSet()
+    while sorted_edges:
+        new_edge = sorted_edges.popleft()
+        if disj_set.connected(new_edge[0], new_edge[1]):
+            leftover_edges.append(new_edge)
+        else:
+            curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+            disj_set.union(new_edge[0], new_edge[1])
+            cost += new_edge[2]['dist']
+            if cost > k:
+                curr_sol.remove_edge(new_edge[0], new_edge[1])
+                return curr_sol
+    if not quit:
+        while leftover_edges:
+            new_edge = leftover_edges.popleft()
+            curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+            cost += new_edge[2]['dist']
+            if cost > k:
+                curr_sol.remove_edge(new_edge[0], new_edge[1])
+                return curr_sol
+    return curr_sol
+
+# Build a minimum distance spanning tree, then add edges until k distance is reached. If quit is True, exits once spanning tree is reached.
+def min_dist_spanning_tree_buildup(cities, k, quit=False):
+    curr_sol = empty_solution(cities)
+    complete = complete_solution(cities)
+    sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: x[2]['dist']))
+    cost = 0.0
+    leftover_edges = deque()
+    disj_set = ds.DisjointSet()
+    while sorted_edges:
+        new_edge = sorted_edges.popleft()
+        if disj_set.connected(new_edge[0], new_edge[1]):
+            leftover_edges.append(new_edge)
+        else:
+            curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+            disj_set.union(new_edge[0], new_edge[1])
+            cost += new_edge[2]['dist']
+            if cost > k:
+                curr_sol.remove_edge(new_edge[0], new_edge[1])
+                return curr_sol
+    if not quit:
+        while leftover_edges:
+            new_edge = leftover_edges.popleft()
+            curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+            cost += new_edge[2]['dist']
+            if cost > k:
+                curr_sol.remove_edge(new_edge[0], new_edge[1])
+                return curr_sol
+    return curr_sol
+
 
 # Find shortest path spanning trees (Dijkstra) for highest-weighted trees until k miles is reached.
 def shortest_path_spanning_tree_buildup(cities, k):
