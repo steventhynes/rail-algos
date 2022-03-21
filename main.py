@@ -140,17 +140,15 @@ def greedy_buildup(cities, k):
     empty = empty_solution(cities)
     complete = complete_solution(cities)
     sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: (complete.nodes[x[0]]['population'] * complete.nodes[x[1]]['population']) / (x[2]['dist'] ** 2), reverse=True))
-    prev_sol = None
     curr_sol = empty
     cost = 0.0
     while sorted_edges:
-        prev_sol = curr_sol
-        curr_sol = curr_sol.copy()
         new_edge = sorted_edges.popleft()
         curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
         cost += new_edge[2]['dist']
         if cost > k:
-            return prev_sol
+            curr_sol.remove_edge(new_edge[0], new_edge[1])
+            return curr_sol
     return curr_sol
 
 # use 0-1 knapsack algorithm to add highest-weight edges up to k distance. O(n^2 * k) pseudo-polynomial time.
