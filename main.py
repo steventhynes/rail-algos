@@ -3,6 +3,7 @@ from math import ceil
 import networkx as nx
 from collections import deque
 import plotly.graph_objects as go
+import disjoint_set as ds
 
 # Utility/helper functions
 
@@ -55,7 +56,50 @@ def evaluate_solution(graph):
         for j in apsp[i]:
             if i is not j and apsp[i][j] < inf:
                 score += (graph.nodes[i]["population"] * graph.nodes[j]["population"]) / apsp[i][j] # multiplied weights of cities divided by distance between them
-    return score
+    return apsp, score
+
+# Add an edge to the graph and evaluate the solution more efficiently based on previous all-pairs-shortest-path length dict. O(n^2).
+def add_edge_and_eval(graph, new_edge, prev_apsp):
+    graph.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+    new_apsp = prev_apsp # copy?
+    new_score = 0.0
+    connected_nodes = [node for node in graph.nodes if graph.edges(node)]
+    endpoint1, endpoint2 = new_edge[:2]
+    for node in connected_nodes:
+        new_apsp[endpoint1][node] = min(prev_apsp[endpoint1][node], prev_apsp[endpoint2][node] + new_edge[2]['dist'])
+        if endpoint1 != node:
+            new_score += (graph.nodes[endpoint1]["population"] * graph.nodes[node]["population"]) / new_apsp[endpoint1][node]
+        new_apsp[endpoint2][node] = min(prev_apsp[endpoint2][node], prev_apsp[endpoint1][node] + new_edge[2]['dist'])
+        if endpoint2 != node:
+            new_score += (graph.nodes[endpoint2]["population"] * graph.nodes[node]["population"]) / new_apsp[endpoint2][node]
+    for node1 in connected_nodes:
+        if node1 in [endpoint1, endpoint2]:
+            continue
+        for node2 in connected_nodes:
+            new_apsp[node1][node2] = min(prev_apsp[node1][node2], new_apsp[endpoint1][node1] + new_edge[2]['dist'] + new_apsp[endpoint2][node2],
+                                        new_apsp[endpoint1][node2] + new_edge[2]['dist'] + new_apsp[endpoint2][node1])
+            if node1 is not node2:
+                new_score += (graph.nodes[node1]["population"] * graph.nodes[node2]["population"]) / new_apsp[node1][node2]
+    return graph, new_apsp, new_score
+            
+def remove_edge_and_eval(graph, edge_to_remove, prev_apsp):
+    connected_nodes = [node for node in graph.nodes if graph.edges(node)]
+    endpoint1, endpoint2 = edge_to_remove[:2]
+    graph.remove_edge(endpoint1, endpoint2)
+    new_apsp = prev_apsp # copy?
+    new_score = 0.0
+    for node1 in connected_nodes:
+        for node2 in connected_nodes:
+            if prev_apsp[node1][node2] == min(prev_apsp[node1][endpoint1] + edge_to_remove[2]['dist'] + prev_apsp[node2][endpoint2], prev_apsp[node1][endpoint2] + edge_to_remove[2]['dist'] + prev_apsp[node2][endpoint1]):
+                try:
+                    new_apsp[node1][node2] = nx.shortest_path_length(graph, node1, node2, weight='dist')
+                except nx.exception.NetworkXNoPath:
+                    new_apsp[node1][node2] = inf
+            else:
+                new_apsp[node1][node2] = prev_apsp[node1][node2]
+            if node1 is not node2:
+                new_score += (graph.nodes[node1]["population"] * graph.nodes[node2]["population"]) / new_apsp[node1][node2]
+    return graph, new_apsp, new_score
 
 # display the solution in a map
 def display_solution(graph):
@@ -139,7 +183,64 @@ def knapsack_buildup(cities, k):
             i -= 1 # if this item was not used
     return to_return
 
-    
+# Build a maximum weight spanning tree, then add edges until k distance is reached. If quit is True, exits once spanning tree is reached.
+def max_weight_spanning_tree_buildup(cities, k, quit=False):
+    curr_sol = empty_solution(cities)
+    complete = complete_solution(cities)
+    sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: (complete.nodes[x[0]]['population'] * complete.nodes[x[1]]['population']) / (x[2]['dist'] ** 2), reverse=True))
+    cost = 0.0
+    leftover_edges = deque()
+    disj_set = ds.DisjointSet()
+    while sorted_edges:
+        new_edge = sorted_edges.popleft()
+        if disj_set.connected(new_edge[0], new_edge[1]):
+            leftover_edges.append(new_edge)
+        else:
+            curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+            disj_set.union(new_edge[0], new_edge[1])
+            cost += new_edge[2]['dist']
+            if cost > k:
+                curr_sol.remove_edge(new_edge[0], new_edge[1])
+                return curr_sol
+    if not quit:
+        while leftover_edges:
+            new_edge = leftover_edges.popleft()
+            curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+            cost += new_edge[2]['dist']
+            if cost > k:
+                curr_sol.remove_edge(new_edge[0], new_edge[1])
+                return curr_sol
+    return curr_sol
+
+# Build a minimum distance spanning tree, then add edges until k distance is reached. If quit is True, exits once spanning tree is reached.
+def min_dist_spanning_tree_buildup(cities, k, quit=False):
+    curr_sol = empty_solution(cities)
+    complete = complete_solution(cities)
+    sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: x[2]['dist']))
+    cost = 0.0
+    leftover_edges = deque()
+    disj_set = ds.DisjointSet()
+    while sorted_edges:
+        new_edge = sorted_edges.popleft()
+        if disj_set.connected(new_edge[0], new_edge[1]):
+            leftover_edges.append(new_edge)
+        else:
+            curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+            disj_set.union(new_edge[0], new_edge[1])
+            cost += new_edge[2]['dist']
+            if cost > k:
+                curr_sol.remove_edge(new_edge[0], new_edge[1])
+                return curr_sol
+    if not quit:
+        while leftover_edges:
+            new_edge = leftover_edges.popleft()
+            curr_sol.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+            cost += new_edge[2]['dist']
+            if cost > k:
+                curr_sol.remove_edge(new_edge[0], new_edge[1])
+                return curr_sol
+    return curr_sol
+
 # Find shortest path spanning trees (Dijkstra) for highest-weighted trees until k miles is reached.
 def shortest_path_spanning_tree_buildup(cities, k):
     pass
@@ -169,6 +270,56 @@ def tabu_search(cities, timeout, k):
 # Local search inspired by evolution
 def genetic_algorithm(cities, timeout, k):
     pass
+
+
+#tests
+
+def test_add_edge_and_eval():
+    cities = cities_from_file('data/us-cities-top-1k.csv')
+    complete = complete_solution(cities)
+    greedy_sol = greedy_buildup(cities, 50)
+    prev_apsp, prev_score = evaluate_solution(greedy_sol)
+    la_ny = "Los Angeles, California", "New York, New York", complete.edges["Los Angeles, California", "New York, New York"]
+    test_graph, test_apsp, test_score = add_edge_and_eval(greedy_sol, la_ny, prev_apsp)
+    bench_apsp, bench_score = evaluate_solution(test_graph)
+    print(prev_score, test_score, bench_score)
+    # print(test_apsp["New York, New York"])
+    # print(bench_apsp["New York, New York"])
+    for city in test_apsp:
+        try:
+            assert test_apsp["New York, New York"][city] == bench_apsp["New York, New York"][city]
+        except:
+            print("%.20f, %.20f" % (test_apsp["New York, New York"][city], bench_apsp["New York, New York"][city]))
+    for city in bench_apsp:
+        try:
+            assert test_apsp["New York, New York"][city] == bench_apsp["New York, New York"][city]
+        except:
+            print("%.20f, %.20f" % (test_apsp["New York, New York"][city], bench_apsp["New York, New York"][city]))
+    assert bench_score == test_score
+
+def test_remove_edge_and_eval():
+    cities = cities_from_file('data/us-cities-top-1k.csv')
+    complete = complete_solution(cities)
+    greedy_sol = greedy_buildup(cities, 50)
+    prev_apsp, prev_score = evaluate_solution(greedy_sol)
+    nj_ny = "Jersey City, New Jersey", "New York, New York", complete.edges["Jersey City, New Jersey", "New York, New York"]
+    test_graph, test_apsp, test_score = remove_edge_and_eval(greedy_sol, nj_ny, prev_apsp)
+    bench_apsp, bench_score = evaluate_solution(test_graph)
+    print(prev_score, test_score, bench_score)
+    # print(test_apsp["New York, New York"])
+    # print(bench_apsp["New York, New York"])
+    for city in test_apsp:
+        try:
+            assert test_apsp["New York, New York"][city] == bench_apsp["New York, New York"][city]
+        except:
+            print("%.20f, %.20f" % (test_apsp["New York, New York"][city], bench_apsp["New York, New York"][city]))
+    for city in bench_apsp:
+        try:
+            assert test_apsp["New York, New York"][city] == bench_apsp["New York, New York"][city]
+        except:
+            print("%.20f, %.20f" % (test_apsp["New York, New York"][city], bench_apsp["New York, New York"][city]))
+    assert bench_score == test_score
+
 
 # read in args and stuff
 if __name__ == "__main__":
