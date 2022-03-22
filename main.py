@@ -48,6 +48,10 @@ def all_pairs_shortest_paths(graph):
     new_graph = nx.induced_subgraph(graph, connected_nodes)
     return nx.floyd_warshall(new_graph, weight='dist')
 
+# Return the score of an edge or node pair
+def score_calc(pop1, pop2, distance):
+    return (pop1 * pop2) / (distance ** 2)
+
 # given the solution edges in the graph, calculate the score (O(n^3) time)
 def evaluate_solution(graph):
     apsp = all_pairs_shortest_paths(graph) # This WILL need to be optimized or approximated; takes way too long
@@ -55,7 +59,7 @@ def evaluate_solution(graph):
     for i in apsp:
         for j in apsp[i]:
             if i is not j and apsp[i][j] < inf:
-                score += (graph.nodes[i]["population"] * graph.nodes[j]["population"]) / apsp[i][j] # multiplied weights of cities divided by distance between them
+                score += score_calc(graph.nodes[i]["population"], graph.nodes[j]["population"], apsp[i][j])
     return apsp, score
 
 # Add an edge to the graph and evaluate the solution more efficiently based on previous all-pairs-shortest-path length dict. O(n^2).
@@ -68,10 +72,10 @@ def add_edge_and_eval(graph, new_edge, prev_apsp):
     for node in connected_nodes:
         new_apsp[endpoint1][node] = min(prev_apsp[endpoint1][node], prev_apsp[endpoint2][node] + new_edge[2]['dist'])
         if endpoint1 != node:
-            new_score += (graph.nodes[endpoint1]["population"] * graph.nodes[node]["population"]) / new_apsp[endpoint1][node]
+            new_score += score_calc(graph.nodes[endpoint1]["population"], graph.nodes[node]["population"], new_apsp[endpoint1][node])
         new_apsp[endpoint2][node] = min(prev_apsp[endpoint2][node], prev_apsp[endpoint1][node] + new_edge[2]['dist'])
         if endpoint2 != node:
-            new_score += (graph.nodes[endpoint2]["population"] * graph.nodes[node]["population"]) / new_apsp[endpoint2][node]
+            new_score += score_calc(graph.nodes[endpoint2]["population"], graph.nodes[node]["population"], new_apsp[endpoint2][node])
     for node1 in connected_nodes:
         if node1 in [endpoint1, endpoint2]:
             continue
@@ -79,7 +83,7 @@ def add_edge_and_eval(graph, new_edge, prev_apsp):
             new_apsp[node1][node2] = min(prev_apsp[node1][node2], new_apsp[endpoint1][node1] + new_edge[2]['dist'] + new_apsp[endpoint2][node2],
                                         new_apsp[endpoint1][node2] + new_edge[2]['dist'] + new_apsp[endpoint2][node1])
             if node1 is not node2:
-                new_score += (graph.nodes[node1]["population"] * graph.nodes[node2]["population"]) / new_apsp[node1][node2]
+                new_score += score_calc(graph.nodes[node1]["population"], graph.nodes[node2]["population"], new_apsp[node1][node2])
     return graph, new_apsp, new_score
             
 def remove_edge_and_eval(graph, edge_to_remove, prev_apsp):
@@ -98,7 +102,7 @@ def remove_edge_and_eval(graph, edge_to_remove, prev_apsp):
             else:
                 new_apsp[node1][node2] = prev_apsp[node1][node2]
             if node1 is not node2:
-                new_score += (graph.nodes[node1]["population"] * graph.nodes[node2]["population"]) / new_apsp[node1][node2]
+                new_score += score_calc(graph.nodes[node1]["population"], graph.nodes[node2]["population"], new_apsp[node1][node2])
     return graph, new_apsp, new_score
 
 # display the solution in a map
@@ -139,7 +143,7 @@ def display_solution(graph):
 def greedy_buildup(cities, k):
     empty = empty_solution(cities)
     complete = complete_solution(cities)
-    sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: (complete.nodes[x[0]]['population'] * complete.nodes[x[1]]['population']) / (x[2]['dist'] ** 2), reverse=True))
+    sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True))
     curr_sol = empty
     cost = 0.0
     while sorted_edges:
@@ -161,7 +165,7 @@ def knapsack_buildup(cities, k):
     for i in range(len(table))[1:]:
         for j in range(len(table[0]))[1:]:
             dist = ceil(edges[i-1][2]['dist'])
-            score = (complete.nodes[edges[i-1][0]]['population'] * complete.nodes[edges[i-1][1]]['population']) / (dist ** 2)
+            score = score_calc(complete.nodes[edges[i-1][0]]['population'], complete.nodes[edges[i-1][1]]['population'], dist)
             if dist > j:
                 table[i][j] = table[i-1][j]
             else:
@@ -185,7 +189,7 @@ def knapsack_buildup(cities, k):
 def max_weight_spanning_tree_buildup(cities, k, quit=False):
     curr_sol = empty_solution(cities)
     complete = complete_solution(cities)
-    sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: (complete.nodes[x[0]]['population'] * complete.nodes[x[1]]['population']) / (x[2]['dist'] ** 2), reverse=True))
+    sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True))
     cost = 0.0
     leftover_edges = deque()
     disj_set = ds.DisjointSet()
