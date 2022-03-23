@@ -1,7 +1,7 @@
 from cmath import inf
 from math import ceil
 import networkx as nx
-from collections import deque
+from collections import defaultdict, deque
 import plotly.graph_objects as go
 import disjoint_set as ds
 
@@ -243,9 +243,31 @@ def min_dist_spanning_tree_buildup(cities, k, quit=False):
                 return curr_sol
     return curr_sol
 
-# Find shortest path spanning trees (Dijkstra) for highest-weighted trees until k miles is reached.
-def shortest_path_spanning_tree_buildup(cities, k):
-    pass
+# divide and conquer idea?
+def divide_and_conquer(empty, complete, k, connect_proportion=.2, depth=None):
+    def recurse(nodes_lat_slice, nodes_lon_slice, k, depth):
+        if depth == 0 or len(nodes_lat_slice) == 1 or len(nodes_lon_slice) == 1:
+            all_nodes = nodes_lat_slice + nodes_lon_slice
+            sub_complete = nx.induced_subgraph(complete, all_nodes)
+            return greedy_buildup(empty, sub_complete, k)
+        recurse_k = k * (1-connect_proportion)
+        merge_k = k * connect_proportion
+        if len(nodes_lat_slice) > len(nodes_lon_slice):
+            half1 = nodes_lat_slice[:len(nodes_lat_slice)//2]
+            half2 = nodes_lat_slice[len(nodes_lat_slice)//2:]
+            subgraph1 = recurse(half1, nodes_lon_slice, recurse_k/2, None if depth is None else depth-1)
+            subgraph2 = recurse(half2, nodes_lon_slice, recurse_k/2, None if depth is None else depth-1)
+        else:
+            half1 = nodes_lon_slice[:len(nodes_lon_slice)//2]
+            half2 = nodes_lon_slice[len(nodes_lon_slice)//2:]
+            subgraph1 = recurse(nodes_lat_slice, half1, recurse_k/2, None if depth is None else depth-1)
+            subgraph2 = recurse(nodes_lat_slice, half2, recurse_k/2, None if depth is None else depth-1)
+        composition = nx.compose(subgraph1, subgraph2)
+        connect_edges = [edge for edge in complete.edges.data() if edge[]]
+        return function(composition, sub_complete, k)
+    nodes_lat = sorted(complete.nodes, key=lambda x: complete.nodes[x]['lat'])
+    nodes_lon = sorted(complete.nodes, key=lambda x: complete.nodes[x]['lon'])
+    return recurse(nodes_lat, nodes_lon, k, depth)
 
 # Start with empty set of edges and build up to a solution, eliminating bad ones along the way.
 def backtracking(cities, k):
