@@ -248,8 +248,53 @@ def shortest_path_spanning_tree_buildup(cities, k):
     pass
 
 # Start with empty set of edges and build up to a solution, eliminating bad ones along the way.
-def backtracking(cities, k):
-    pass
+def backtracking(cities, k, score_threshold=None):
+    curr_sol = empty_solution(cities)
+    complete = complete_solution(cities)
+    complete_edges = sorted(complete.edges.data(), key=lambda x: x[2]['dist'], reverse=True)
+    edge_include_arr = [False] * len(complete_edges)
+    stack_arr = [None] * (len(complete_edges) + 1)
+    stack_arr[0] = ([], 0, *evaluate_solution(curr_sol)) #edges, cost, apsp, score
+    # visited_edge_set = set()
+    curr_best = stack_arr[0][:]
+    stack_index = 1
+    while stack_index > 0:
+        if stack_index == len(stack_arr):
+            stack_index -= 1
+        edge_index = stack_index - 1
+        print(len(edge_include_arr[:edge_index+1]), len(complete_edges))
+        if stack_arr[stack_index] is not None and stack_arr[stack_index][0] == tuple(edge_include_arr[:edge_index+1]):
+            if edge_include_arr[edge_index] == False:
+                edge_include_arr[edge_index] = True
+            else:
+                curr_sol.remove_edge(*complete_edges[edge_index][:2])
+                stack_index -= 1
+        else:
+            if edge_include_arr[:edge_index+1][-1] == True:
+                curr_sol, new_apsp, new_score = add_edge_and_eval(curr_sol, complete_edges[edge_index], stack_arr[stack_index-1][2])
+                stack_arr[stack_index] = (tuple(edge_include_arr[:edge_index+1]), curr_sol.size(weight='dist'), new_apsp, new_score)
+                if stack_arr[stack_index][1] > k:
+                    curr_sol.remove_edge(*complete_edges[edge_index][:2])
+                    stack_index -= 1
+                    continue
+                if score_threshold and new_score > score_threshold:
+                    return curr_sol
+                if new_score > curr_best[3]:
+                    curr_best = stack_arr[stack_index]
+            else:
+                stack_arr[stack_index] = (tuple(edge_include_arr[:edge_index+1]), *stack_arr[stack_index-1][1:])
+            edge_include_arr[edge_index+1] = False
+            stack_index += 1
+    # rebuild solution from curr_best
+    final = empty_solution(cities)
+    edges_to_add = [complete_edges[idx] for idx in range(len(curr_best[0])) if curr_best[0][idx]]
+    final.add_edges_from(edges_to_add)
+    return final
+    
+
+
+
+
 
 # Start with all possible solutions and systematically eliminate them by keeping a running maximum
 # score and eliminating candidates via their upper bound.
