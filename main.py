@@ -46,7 +46,18 @@ def complete_solution(cities):
 def all_pairs_shortest_paths(graph):
     connected_nodes = [node for node in graph.nodes if graph.edges(node)]
     new_graph = nx.induced_subgraph(graph, connected_nodes)
-    return nx.floyd_warshall(new_graph, weight='dist')
+    apsp = nx.floyd_warshall(new_graph, weight='dist')
+    new_apsp = {}
+    for i in graph.nodes:
+        new_apsp[i] = {}
+        for j in graph.nodes:
+            try:
+                new_apsp[i][j] = apsp[i][j]
+            except KeyError:
+                new_apsp[i][j] = inf
+    return new_apsp
+
+
 
 # Return the score of an edge or node pair
 def score_calc(pop1, pop2, distance):
@@ -70,10 +81,14 @@ def add_edge_and_eval(graph, new_edge, prev_apsp):
     connected_nodes = [node for node in graph.nodes if graph.edges(node)]
     endpoint1, endpoint2 = new_edge[:2]
     for node in connected_nodes:
+        # if endpoint1 not in new_apsp:
+        #     new_apsp[endpoint1] = {}
         new_apsp[endpoint1][node] = min(prev_apsp[endpoint1][node], prev_apsp[endpoint2][node] + new_edge[2]['dist'])
         if endpoint1 != node:
             new_score += score_calc(graph.nodes[endpoint1]["population"], graph.nodes[node]["population"], new_apsp[endpoint1][node])
         new_apsp[endpoint2][node] = min(prev_apsp[endpoint2][node], prev_apsp[endpoint1][node] + new_edge[2]['dist'])
+        # if endpoint2 not in new_apsp:
+        #     new_apsp[endpoint2] = {}
         if endpoint2 != node:
             new_score += score_calc(graph.nodes[endpoint2]["population"], graph.nodes[node]["population"], new_apsp[endpoint2][node])
     for node1 in connected_nodes:
