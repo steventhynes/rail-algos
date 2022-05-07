@@ -1,9 +1,12 @@
 from cmath import inf
+from dataclasses import dataclass
 from math import ceil
 import networkx as nx
 from collections import deque
+import heapq as hq
 import plotly.graph_objects as go
 import disjoint_set as ds
+from random import shuffle
 
 # Utility/helper functions
 
@@ -54,7 +57,10 @@ def all_pairs_shortest_paths(graph):
             try:
                 new_apsp[i][j] = apsp[i][j]
             except KeyError:
-                new_apsp[i][j] = inf
+                if i == j:
+                    new_apsp[i][j] = 0.0
+                else:
+                    new_apsp[i][j] = inf
     return new_apsp
 
 
@@ -262,53 +268,101 @@ def min_dist_spanning_tree_buildup(cities, k, quit=False):
 def shortest_path_spanning_tree_buildup(cities, k):
     pass
 
-# Start with empty set of edges and build up to a solution, eliminating bad ones along the way.
-def backtracking(cities, k, score_threshold=None):
-    curr_sol = empty_solution(cities)
+@dataclass
+class PartialSolution:
+    edge_array: list
+    total_weight: float
+    shortest_path_lengths: dict
+    score: float
+    depth: int
+    graph: int
+
+    def __init__(self, edge_array=None, total_weight=None, shortest_path_lengths=None, score=None, depth=None, graph=None):
+        self.edge_array = edge_array
+        self.total_weight =  total_weight
+        self.shortest_path_lengths = shortest_path_lengths
+        self.score = score
+        self.depth = depth
+        self.graph = graph
+    
+    def __lt__(self, other):
+        self.total_weight < other.total_weight
+
+    def __le__(self, other):
+        self.total_weight <= other.total_weight
+
+def backtracking_iterative_deepening(cities, k, score_threshold=None, iter_depth=20, max_heap_graphs=5000):
     complete = complete_solution(cities)
     complete_edges = sorted(complete.edges.data(), key=lambda x: x[2]['dist'], reverse=True)
-    edge_include_arr = [False] * len(complete_edges)
-    stack_arr = [None] * (len(complete_edges) + 1)
-    stack_arr[0] = ([], 0, *evaluate_solution(curr_sol)) #edges, cost, apsp, score
-    # visited_edge_set = set()
-    curr_best = stack_arr[0][:]
-    stack_index = 1
-    while stack_index > 0:
-        if stack_index == len(stack_arr):
-            stack_index -= 1
-        edge_index = stack_index - 1
-        print(len(edge_include_arr[:edge_index+1]), len(complete_edges))
-        if stack_arr[stack_index] is not None and stack_arr[stack_index][0] == tuple(edge_include_arr[:edge_index+1]):
-            if edge_include_arr[edge_index] == False:
-                edge_include_arr[edge_index] = True
+    # complete_edges = sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True)
+    partial_solutions_heap = [] # heap4
+    initial_sol = PartialSolution([], 0, *evaluate_solution(empty_solution(cities)), 0, empty_solution(cities))
+    hq.heappush(partial_solutions_heap, (0, initial_sol)) #priority queue
+    curr_best = initial_sol
+    heap_graphs_count = 0
+    try:
+        while partial_solutions_heap:
+            # Pop partial solution off the priority queue and initialize the next run
+            print("partial sol popped off.")
+            partial_sol = hq.heappop(partial_solutions_heap)[1]
+            base_depth = partial_sol.depth
+            stack = deque()
+            # Rebuild graph if it's not there
+            if partial_sol.graph is None:
+                partial_sol.graph = empty_solution(cities)
+                edges_to_add = [complete_edges[idx][:2] for idx in range(len(partial_sol.edge_array)) if partial_sol.edge_array[idx]]
+                partial_sol.graph.add_edges_from(edges_to_add)
+            # If graph is there, decrease the count
             else:
-                curr_sol.remove_edge(*complete_edges[edge_index][:2])
-                stack_index -= 1
-        else:
-            if edge_include_arr[:edge_index+1][-1] == True:
-                curr_sol, new_apsp, new_score = add_edge_and_eval(curr_sol, complete_edges[edge_index], stack_arr[stack_index-1][2])
-                stack_arr[stack_index] = (tuple(edge_include_arr[:edge_index+1]), curr_sol.size(weight='dist'), new_apsp, new_score)
-                if stack_arr[stack_index][1] > k:
-                    curr_sol.remove_edge(*complete_edges[edge_index][:2])
-                    stack_index -= 1
-                    continue
-                if score_threshold and new_score > score_threshold:
-                    return curr_sol
-                if new_score > curr_best[3]:
-                    curr_best = stack_arr[stack_index]
-            else:
-                stack_arr[stack_index] = (tuple(edge_include_arr[:edge_index+1]), *stack_arr[stack_index-1][1:])
-            edge_include_arr[edge_index+1] = False
-            stack_index += 1
-    # rebuild solution from curr_best
-    final = empty_solution(cities)
-    edges_to_add = [complete_edges[idx] for idx in range(len(curr_best[0])) if curr_best[0][idx]]
-    final.add_edges_from(edges_to_add)
-    return final
-    
+                heap_graphs_count -= 1
+            stack.append(partial_sol)
+            while stack:
+                # print(", ".join(str(i[0]) for i in partial_solutions_heap))
+                # print(len(partial_solutions_heap))
+                print([(i.edge_array, i.total_weight, i.score) for i in stack])
+                curr_sol = stack.pop()
 
+                if curr_sol.total_weight > k: # This solution is prohibitive -- the cost is too high.
+                    continue # don't add expanded solutions to the stack
+                
+                if curr_sol.score > curr_best.score:
+                    curr_best = curr_sol
 
+                elif score_threshold is not None and curr_sol.score >= score_threshold:
+                    return curr_sol.graph
 
+                elif curr_sol.depth == base_depth + iter_depth: # This is a partial solution; we've reached max depth for this iteration
+                    # score = curr_sol.score / curr_sol.total_weight if curr_sol.total_weight else 0
+                    if heap_graphs_count >= max_heap_graphs:
+                        curr_sol.graph = None
+                    else:
+                        heap_graphs_count += 1
+                    score = curr_sol.score * (k - curr_sol.total_weight)
+                    hq.heappush(partial_solutions_heap, (-score, curr_sol)) # score is negative because hq only supports minheap
+
+                else: # None of the above are satisfied; create new solutions and add them to the stack
+                    no_edge_sol = PartialSolution()
+                    no_edge_sol.edge_array = curr_sol.edge_array + ['False']
+                    no_edge_sol.total_weight = curr_sol.total_weight
+                    no_edge_sol.shortest_path_lengths = curr_sol.shortest_path_lengths
+                    no_edge_sol.score = curr_sol.score
+                    no_edge_sol.depth = curr_sol.depth + 1
+                    no_edge_sol.graph = curr_sol.graph
+                    stack.append(no_edge_sol)
+
+                    yes_edge_sol = PartialSolution()
+                    yes_edge_sol.edge_array = curr_sol.edge_array + ['True']
+                    yes_edge_sol.graph, yes_edge_sol.shortest_path_lengths, yes_edge_sol.score = add_edge_and_eval(curr_sol.graph.copy(), complete_edges[curr_sol.depth+1], curr_sol.shortest_path_lengths)
+                    yes_edge_sol.total_weight = yes_edge_sol.graph.size(weight='dist')
+                    yes_edge_sol.depth = curr_sol.depth + 1
+                    stack.append(yes_edge_sol)
+                    
+    except KeyboardInterrupt:
+        print(curr_best.edge_array)
+        return_graph = empty_solution(cities)
+        edges_to_add = [complete_edges[idx][:2] for idx in range(len(curr_best.edge_array)) if curr_sol.edge_array[idx]]
+        return_graph.add_edges_from(edges_to_add)
+        return return_graph
 
 
 # Start with all possible solutions and systematically eliminate them by keeping a running maximum
