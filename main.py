@@ -291,11 +291,10 @@ class PartialSolution:
     def __le__(self, other):
         self.total_weight <= other.total_weight
 
-def backtracking_iterative_deepening(cities, k, score_threshold=None, iter_depth=20, max_heap_graphs=5000):
+def backtracking_iterative_deepening(cities, k, score_threshold, iter_depth=5, max_heap_graphs=2500):
     complete = complete_solution(cities)
-    complete_edges = sorted(complete.edges.data(), key=lambda x: x[2]['dist'], reverse=True)
-    # complete_edges = sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True)
-    partial_solutions_heap = [] # heap4
+    complete_edges = sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True)
+    partial_solutions_heap = []
     initial_sol = PartialSolution([], 0, *evaluate_solution(empty_solution(cities)), 0, empty_solution(cities))
     hq.heappush(partial_solutions_heap, (0, initial_sol)) #priority queue
     curr_best = initial_sol
@@ -317,10 +316,10 @@ def backtracking_iterative_deepening(cities, k, score_threshold=None, iter_depth
                 heap_graphs_count -= 1
             stack.append(partial_sol)
             while stack:
-                # print(", ".join(str(i[0]) for i in partial_solutions_heap))
-                # print(len(partial_solutions_heap))
-                print([(i.edge_array, i.total_weight, i.score) for i in stack])
                 curr_sol = stack.pop()
+                print("popped off from stack")
+                # print(f"{curr_sol.total_weight=}, {curr_sol.score=}, {curr_sol.depth=}, {curr_sol.edge_array}")
+                print(f"{curr_sol.total_weight=}, {curr_sol.score=}, {curr_sol.depth=}")
 
                 if curr_sol.total_weight > k: # This solution is prohibitive -- the cost is too high.
                     continue # don't add expanded solutions to the stack
@@ -328,21 +327,22 @@ def backtracking_iterative_deepening(cities, k, score_threshold=None, iter_depth
                 if curr_sol.score > curr_best.score:
                     curr_best = curr_sol
 
-                elif score_threshold is not None and curr_sol.score >= score_threshold:
+                if score_threshold is not None and curr_sol.score >= score_threshold:
                     return curr_sol.graph
 
                 elif curr_sol.depth == base_depth + iter_depth: # This is a partial solution; we've reached max depth for this iteration
                     # score = curr_sol.score / curr_sol.total_weight if curr_sol.total_weight else 0
+                    print("adding partial sol to heap")
                     if heap_graphs_count >= max_heap_graphs:
                         curr_sol.graph = None
                     else:
                         heap_graphs_count += 1
-                    score = curr_sol.score * (k - curr_sol.total_weight)
+                    score = (.25*(curr_sol.depth / len(complete_edges)) + .75*(curr_sol.score / score_threshold)) - (curr_sol.total_weight / k)
                     hq.heappush(partial_solutions_heap, (-score, curr_sol)) # score is negative because hq only supports minheap
 
                 else: # None of the above are satisfied; create new solutions and add them to the stack
                     no_edge_sol = PartialSolution()
-                    no_edge_sol.edge_array = curr_sol.edge_array + ['False']
+                    no_edge_sol.edge_array = curr_sol.edge_array + [False] * (base_depth + iter_depth - curr_sol.depth + 1)
                     no_edge_sol.total_weight = curr_sol.total_weight
                     no_edge_sol.shortest_path_lengths = curr_sol.shortest_path_lengths
                     no_edge_sol.score = curr_sol.score
@@ -350,12 +350,15 @@ def backtracking_iterative_deepening(cities, k, score_threshold=None, iter_depth
                     no_edge_sol.graph = curr_sol.graph
                     stack.append(no_edge_sol)
 
-                    yes_edge_sol = PartialSolution()
-                    yes_edge_sol.edge_array = curr_sol.edge_array + ['True']
-                    yes_edge_sol.graph, yes_edge_sol.shortest_path_lengths, yes_edge_sol.score = add_edge_and_eval(curr_sol.graph.copy(), complete_edges[curr_sol.depth+1], curr_sol.shortest_path_lengths)
-                    yes_edge_sol.total_weight = yes_edge_sol.graph.size(weight='dist')
-                    yes_edge_sol.depth = curr_sol.depth + 1
-                    stack.append(yes_edge_sol)
+                    print("adding to stack")
+
+                    for edge_add_idx in range(curr_sol.depth, base_depth + iter_depth):
+                        yes_edge_sol = PartialSolution()
+                        yes_edge_sol.edge_array = curr_sol.edge_array + [False] * (edge_add_idx - curr_sol.depth) + [True]
+                        yes_edge_sol.graph, yes_edge_sol.shortest_path_lengths, yes_edge_sol.score = add_edge_and_eval(curr_sol.graph.copy(), complete_edges[edge_add_idx], curr_sol.shortest_path_lengths)
+                        yes_edge_sol.total_weight = yes_edge_sol.graph.size(weight='dist')
+                        yes_edge_sol.depth = edge_add_idx+1
+                        stack.append(yes_edge_sol)
                     
     except KeyboardInterrupt:
         print(curr_best.edge_array)
