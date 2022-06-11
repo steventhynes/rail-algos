@@ -1,6 +1,7 @@
 from cmath import inf
 import networkx as nx
 import plotly.graph_objects as go
+from random import sample
 
 
 # Utility/helper functions
@@ -72,6 +73,18 @@ def evaluate_solution(graph):
                 score += score_calc(graph.nodes[i]["population"], graph.nodes[j]["population"], apsp[i][j])
     return apsp, score
 
+def approx_evaluate_solution(graph, most_important_nodes, num_random_nodes):
+    nodes = set(most_important_nodes + sample(graph.nodes, num_random_nodes))
+    score = 0
+    for node in nodes:
+        path_lengths = nx.shortest_path_length(graph, node, weight='dist')
+        for target in path_lengths:
+            if node == target:
+                continue
+            score += score_calc(graph.nodes[node]['population'], graph.nodes[target]['population'], path_lengths[target])
+    return score * len(graph.nodes)/len(nodes)
+
+
 # Add an edge to the graph and evaluate the solution more efficiently based on previous all-pairs-shortest-path length dict. O(n^2).
 def add_edge_and_eval(graph, new_edge, prev_apsp):
     graph.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
@@ -99,6 +112,10 @@ def add_edge_and_eval(graph, new_edge, prev_apsp):
             if node1 is not node2:
                 new_score += score_calc(graph.nodes[node1]["population"], graph.nodes[node2]["population"], new_apsp[node1][node2])
     return graph, new_apsp, new_score
+
+def approx_add_edge_and_eval(graph, new_edge):
+    graph.add_edge(new_edge[0], new_edge[1], dist=new_edge[2]['dist'])
+    approx_evaluate_solution(graph, [])
             
 def remove_edge_and_eval(graph, edge_to_remove, prev_apsp):
     connected_nodes = [node for node in graph.nodes if graph.edges(node)]
@@ -131,7 +148,7 @@ def display_solution(graph):
     mode = 'markers',
     marker = dict(
         size = 2,
-        color = 'rgb(255, 0, 0)',
+        color = 'rgb(0, 0, 255)',
         line = dict(
             width = 3,
             color = 'rgba(68, 68, 68, 0)'
