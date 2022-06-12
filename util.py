@@ -27,7 +27,7 @@ def empty_solution(cities):
     return graph
 
 # build graph of cities with all edges and edge weights (O(n^2) time)
-def complete_solution(cities):
+def complete_solution(cities, dist_limit=10):
     graph = empty_solution(cities)
     edges_to_add = []
     visited_edges = set()
@@ -35,7 +35,8 @@ def complete_solution(cities):
         for j in graph.nodes:
             if i is not j and (i, j) not in visited_edges:
                 dist = ((graph.nodes[i]["lat"] - graph.nodes[j]["lat"]) ** 2 + (graph.nodes[i]["lon"] - graph.nodes[j]["lon"]) ** 2) ** 0.5
-                edges_to_add.append((i, j, dist))
+                if dist_limit is not None and dist <= dist_limit:
+                    edges_to_add.append((i, j, dist))
                 visited_edges.add((i, j))
                 visited_edges.add((j, i))
     graph.add_weighted_edges_from(edges_to_add, weight="dist")
