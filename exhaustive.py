@@ -63,7 +63,7 @@ def heuristic(sol, max_weight, complete, score_threshold, *args, **kwargs):
         heuristic.sorted_edges = sorted(complete.nodes, key=lambda x: complete.nodes[x]['population'])
         return approx_evaluate_solution(sol.graph, heuristic.sorted_edges[:20], 180) / sol.total_weight
 
-def backtracking_iterative_deepening(cities, k, score_threshold, iter_depth=5, heap_max=2000, heap_after_cull=500):
+def branch_and_bound_iterative_deepening(cities, k, score_threshold, iter_depth=5, heap_max=2000, heap_after_cull=500):
     complete = complete_solution(cities)
     complete_edges = sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True)
     partial_solutions_heap = []
@@ -141,7 +141,7 @@ def backtracking_iterative_deepening(cities, k, score_threshold, iter_depth=5, h
 
 # Start with all possible solutions and systematically eliminate them by keeping a running maximum
 # score and eliminating candidates via their upper bound.
-def branch_and_bound(cities, k, score_threshold, expansion=1000, heap_max=2000, heap_after_cull=500):
+def branch_and_bound_breadth(cities, k, score_threshold, expansion=1000, heap_max=2000, heap_after_cull=500):
     
     complete = complete_solution(cities)
     complete_edges = sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True)
