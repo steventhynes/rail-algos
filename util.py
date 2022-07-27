@@ -60,7 +60,8 @@ def all_pairs_shortest_paths(graph):
 
 # Return the score of an edge or node pair
 def score_calc(pop1, pop2, distance):
-    return (pop1 * pop2) / (distance ** 2)
+    # return (pop1 * pop2) * (10 ** -10) / (distance ** 2)
+    return (pop1 * pop2) * (10 ** -10) / distance
 
 # given the solution edges in the graph, calculate the score (O(n^3) time)
 def evaluate_solution(graph):
