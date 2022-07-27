@@ -250,6 +250,21 @@ class PossibleSolution:
     def _get_heuristic_score(self):
         return self.score - 1e15 * max(0, (self.total_weight - self.weight_limit))
 
+def generate_solution(empty_graph, complete_graph, cities, weight_limit):
+    # edge_prob = 400/len(complete_graph.edges)
+
+    num_edges = len(complete_graph.edges)
+    new_sol = PossibleSolution()
+    PossibleSolution.empty_graph = empty_graph
+    PossibleSolution.complete_graph = complete_graph
+    PossibleSolution.weight_limit = weight_limit
+    # new_sol.graph = greedy_buildup(cities, weight_limit)
+    # new_sol.graph = max_weight_spanning_tree_buildup(cities, weight_limit)
+    new_sol.graph = min_dist_spanning_tree_buildup(cities, weight_limit)
+    new_sol.edge_dict = {edge:(edge in new_sol.graph.edges) for edge in complete_graph.edges}
+    new_sol.fill_from_graph()
+
+    return new_sol
     pass
 
 # Local search inspired by evolution
