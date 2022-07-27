@@ -318,6 +318,65 @@ def simulated_annealing(cities, k, timeout=600, temp_mult=30):
             curr_best = curr_sol
     return curr_best.graph
 
+def ant_colony_optimization(cities, k, global_timeout=600, local_timeout=30, evaporation=0.9, popsize=10, initial_pheromone=1, sigma=1, epsilon=1):
+    complete = complete_solution(cities)
+    edges = complete.edges
+    pheromones = {edge:initial_pheromone for edge in edges}
+    def generate_ant_trail():
+        desirabilities = [(edge, (pheromones[edge] ** sigma * complete.edges[edge]['dist'] ** -epsilon)) for edge in edges]
+        cumulative_desirabilities = desirabilities
+        for idx in range(1, len(desirabilities)):
+            cumulative_desirabilities[idx] = (desirabilities[idx][0], cumulative_desirabilities[idx-1][1] + desirabilities[idx][1])
+        new_sol = PossibleSolution()
+        new_sol.empty_graph = empty_solution(cities)
+        new_sol.graph = empty_solution(cities)
+        new_sol.complete_graph = complete
+        new_sol.weight_limit = k
+        while new_sol.graph.size('dist') < k:
+            random_num = random() * cumulative_desirabilities[-1][1]
+            # binary search
+            lower_limit = 0
+            upper_limit = len(desirabilities)
+            while True:
+                selection_idx = (lower_limit + upper_limit) // 2
+                if cumulative_desirabilities[selection_idx][1] > random_num:
+                    if selection_idx == 0 or random_num > cumulative_desirabilities[selection_idx-1][1]:
+                        edge = cumulative_desirabilities[selection_idx][0]
+                        new_sol.graph.add_edge(*edge, dist=edges[edge]['dist'])
+                        break
+                    else:
+                        upper_limit = selection_idx
+                else:
+                    lower_limit = selection_idx
+        if new_sol.graph.size('dist') > k:
+            new_sol.graph.remove_edge(*edge)
+        new_sol.edge_dict = {edge:(edge in new_sol.graph.edges) for edge in complete.edges}
+        new_sol.fill_from_graph()
+        # print(new_sol.total_weight)
+        return new_sol
+
+    best = None
+    start_time = time.time()
+    while time.time() - start_time < global_timeout:
+        trails = []
+        while len(trails) < popsize:
+            curr_sol = generate_ant_trail()
+            local_start_time = time.time()
+            while time.time() - local_start_time < local_timeout:
+                new_sol = curr_sol.tweak()
+                if new_sol.heuristic_score > curr_sol.heuristic_score:
+                    curr_sol = new_sol
+            if best is None or curr_sol.heuristic_score > best.heuristic_score:
+                best = curr_sol
+            print(f"BEST: {best.total_weight=}, {best.score=}, {best.heuristic_score=}")
+            print(f"CURRENT: {curr_sol.total_weight=}, {curr_sol.score=}, {curr_sol.heuristic_score=}")
+            trails.append(curr_sol)
+        for edge in pheromones:
+            pheromones[edge] *= (1 - evaporation)
+        for trail in trails:
+            for edge in trail.graph.edges:
+                pheromones[edge] += trail.heuristic_score
+    return best.graph
     pass
 
 # Local search inspired by evolution
