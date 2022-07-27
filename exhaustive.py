@@ -58,10 +58,10 @@ def heuristic(sol, max_weight, complete, score_threshold, *args, **kwargs):
     # exp_pot = sol.score +  num_edges * score_calc(complete.nodes[edge[0]]['population'], complete.nodes[edge[1]]['population'], edge[2]['dist'])
     # return exp_pot
     try:
-        return approx_evaluate_solution(sol.graph, heuristic.sorted_edges[:20], 180)
+        return approx_evaluate_solution(sol.graph, heuristic.sorted_nodes[:20], 180) / sol.total_weight
     except AttributeError:
-        heuristic.sorted_edges = sorted(complete.nodes, key=lambda x: complete.nodes[x]['population'])
-        return approx_evaluate_solution(sol.graph, heuristic.sorted_edges[:20], 180) / sol.total_weight
+        heuristic.sorted_nodes = sorted(complete.nodes, key=lambda x: complete.nodes[x]['population'])
+        return approx_evaluate_solution(sol.graph, heuristic.sorted_nodes[:20], 180) / sol.total_weight
 
 def branch_and_bound_iterative_deepening(cities, k, score_threshold, iter_depth=5, heap_max=2000, heap_after_cull=500):
     complete = complete_solution(cities)
