@@ -377,8 +377,57 @@ def ant_colony_optimization(cities, k, global_timeout=600, local_timeout=30, eva
             for edge in trail.graph.edges:
                 pheromones[edge] += trail.heuristic_score
     return best.graph
+
+            
+def evolutionary_algorithm(cities, k, timeout=1200, num_parents=10, popsize=20, parents_persist=True, genetic=False):
+    complete = complete_solution(cities)
+    edges = complete.edges
+    edges_list = list(edges)
+    curr_pop = []
+
+    def new_solution():
+        new_sol = PossibleSolution()
+        new_sol.empty_graph = empty_solution(cities)
+        new_sol.graph = empty_solution(cities)
+        new_sol.complete_graph = complete
+        new_sol.weight_limit = k
+        while new_sol.graph.size('dist') < k:
+            edge = choice(edges_list)
+            # print(edge)
+            new_sol.graph.add_edge(*edge, dist=edges[edge]['dist'])
+        if new_sol.graph.size('dist') > k:
+            new_sol.graph.remove_edge(*edge)
+        new_sol.edge_dict = {edge:(edge in new_sol.graph.edges) for edge in complete.edges}
+        new_sol.fill_from_graph()
+        return new_sol
+
+    def genetic_crossover(parent1, parent2):
     pass
 
-# Local search inspired by evolution
-def genetic_algorithm(cities, timeout, k):
-    pass
+    while len(curr_pop) < popsize:
+        curr_pop.append(new_solution())
+    best = None
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        for sol in curr_pop:
+            if best is None or best.heuristic_score < sol.heuristic_score:
+                best = sol
+        if genetic: # using genetic algorithm with crossover
+            new_pop = []
+            parents = sample(curr_pop, 2)
+            children = genetic_crossover(*parents)
+            new_pop.extend(children)
+            curr_pop = new_pop
+        else: # using regular evolutionary algorithm
+            sorted_pop = sorted(curr_pop, key=lambda x: x.heuristic_score, reverse=True)
+            parents = sorted_pop[:num_parents]
+            print(f"BEST: {best.total_weight=}, {best.score=}, {best.heuristic_score=}")
+            if parents_persist:
+                curr_pop = parents[:]
+            else:
+                curr_pop = []
+            for parent in parents:
+                for child_num in range(popsize // num_parents):
+                    curr_pop.append(parent.tweak())
+        print(f'{len(curr_pop)=}')
+    return best.graph
