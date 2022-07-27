@@ -290,6 +290,34 @@ def iterated_local_search(cities, k, global_timeout=600, local_timeout=30):
         curr_home = curr_home.new_home_base(curr_sol)
         curr_sol = curr_home.perturb()
     return curr_best.graph
+        
+        
+# Local search with a steadily decreasing chance to move to an inferior solution
+def simulated_annealing(cities, k, timeout=600, temp_mult=30):
+    def temp(elapsed_time):
+        return temp_mult * (1 - (elapsed_time / timeout))
+    def switch_prob(temp, better_qual, worse_qual):
+        try:
+            print(exp((worse_qual - better_qual) / temp))
+            return exp((worse_qual - better_qual) / temp)
+        except OverflowError:
+            return 0
+
+    empty = empty_solution(cities)
+    complete = complete_solution(cities)
+    curr_sol = generate_solution(empty, complete, cities, k)
+    curr_best = curr_sol
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        print(f"BEST: {curr_best.total_weight=}, {curr_best.score=}, {curr_best.heuristic_score=}")
+        print(f"CURRENT: {curr_sol.total_weight=}, {curr_sol.score=}, {curr_sol.heuristic_score=}")
+        new_sol = curr_sol.tweak()
+        if new_sol.heuristic_score > curr_sol.heuristic_score or random() < switch_prob(temp(time.time() - start_time), curr_sol.heuristic_score, new_sol.heuristic_score):
+            curr_sol = new_sol
+        if curr_sol.heuristic_score > curr_best.heuristic_score:
+            curr_best = curr_sol
+    return curr_best.graph
+
     pass
 
 # Local search inspired by evolution
