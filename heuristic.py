@@ -160,12 +160,6 @@ class PossibleSolution:
                     add_weight += self.complete_graph.edges[new_edge]['dist']
 
 
-        def add_connected_edge():
-    pass
-
-        def add_intermediate_edge():
-    pass
-
         add_shortest_path(connected_only=True)
         while self.total_weight + add_weight - remove_weight > self.weight_limit:
             selection = choice([edge for edge in self.graph.edges])
@@ -410,7 +404,7 @@ def evolutionary_algorithm(cities, k, timeout=1200, num_parents=10, popsize=20, 
         return new_sol
 
     def genetic_crossover(parent1, parent2):
-    pass
+        pass
 
     while len(curr_pop) < popsize:
         curr_pop.append(new_solution())
