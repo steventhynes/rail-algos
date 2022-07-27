@@ -1,6 +1,9 @@
 from cmath import inf
 import networkx as nx
+from numpy import average
 import plotly.graph_objects as go
+from random import sample
+from itertools import product
 
 
 # Utility/helper functions
@@ -150,3 +153,26 @@ def display_solution(graph):
             )
         )
     fig.show()
+
+def display_solution_continuous(graph):
+    pass
+
+
+def optimize_hyperparameters_grid(algo, cities, k, *args, score_func=lambda x: approx_evaluate_solution(x, [], len(x.nodes)), num_runs=1):
+    args_arrays = product(*args)
+    print(args)
+
+    curr_best = None
+    curr_best_val = -inf
+
+    for i in args_arrays:
+        print(i)
+        new_vals = [score_func(algo(cities, k, *i)) for run in range(num_runs)]
+        new_val = average(new_vals)
+        if new_val > curr_best_val:
+            curr_best = i
+            curr_best_val = new_val
+    
+    return curr_best
+
+    
