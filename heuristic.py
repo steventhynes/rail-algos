@@ -265,6 +265,31 @@ def generate_solution(empty_graph, complete_graph, cities, weight_limit):
     new_sol.fill_from_graph()
 
     return new_sol
+    
+
+# Local search with a perturbation when a local optimum is found. Perturbation is made to be different
+# from a previous local minima.
+def iterated_local_search(cities, k, global_timeout=600, local_timeout=30):
+    empty = empty_solution(cities)
+    complete = complete_solution(cities)
+    curr_sol = generate_solution(empty, complete, cities, k)
+    curr_home = curr_sol
+    curr_best = curr_sol
+    global_start_time = time.time()
+    while time.time() - global_start_time < global_timeout:
+        local_start_time = time.time()
+        while time.time() - local_start_time < local_timeout:
+            print(f"BEST: {curr_best.total_weight=}, {curr_best.score=}, {curr_best.heuristic_score=}")
+            print(f"HOME: {curr_home.total_weight=}, {curr_home.score=}, {curr_home.heuristic_score=}")
+            print(f"CURRENT: {curr_sol.total_weight=}, {curr_sol.score=}, {curr_sol.heuristic_score=}")
+            new_sol = curr_sol.tweak()
+            if new_sol.heuristic_score > curr_sol.heuristic_score:
+                curr_sol = new_sol
+        if curr_sol.heuristic_score > curr_best.heuristic_score:
+            curr_best = curr_sol
+        curr_home = curr_home.new_home_base(curr_sol)
+        curr_sol = curr_home.perturb()
+    return curr_best.graph
     pass
 
 # Local search inspired by evolution
