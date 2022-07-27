@@ -1,4 +1,10 @@
 from util import *
+from random import random, choice
+from naive import max_weight_spanning_tree_buildup, min_dist_spanning_tree_buildup
+import time
+from dataclasses import dataclass
+from math import exp, ceil
+
 @dataclass
 class PossibleSolution:
     edge_dict: dict
@@ -249,6 +255,8 @@ class PossibleSolution:
 
     def _get_heuristic_score(self):
         return self.score - 1e15 * max(0, (self.total_weight - self.weight_limit))
+
+
 
 def generate_solution(empty_graph, complete_graph, cities, weight_limit):
     # edge_prob = 400/len(complete_graph.edges)
