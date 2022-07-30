@@ -1,3 +1,4 @@
+from copy import copy
 from util import *
 from random import random, choice
 from naive import max_weight_spanning_tree_buildup, min_dist_spanning_tree_buildup
@@ -324,6 +325,7 @@ def ant_colony_optimization(cities, k, global_timeout=600, local_timeout=30, eva
     complete = complete_solution(cities)
     edges = complete.edges
     pheromones = {edge:initial_pheromone for edge in edges}
+    
     def generate_ant_trail():
         desirabilities = [(edge, (pheromones[edge] ** sigma * complete.edges[edge]['dist'] ** -epsilon)) for edge in edges]
         cumulative_desirabilities = desirabilities
@@ -403,8 +405,17 @@ def evolutionary_algorithm(cities, k, timeout=1200, num_parents=10, popsize=20, 
         new_sol.fill_from_graph()
         return new_sol
 
-    def genetic_crossover(parent1, parent2):
-        pass
+    def genetic_crossover(parent1, parent2, swap_prob):
+        child1 = copy(parent1)
+        child2 = copy(parent2)
+        for edge in edges:
+            if swap_prob:
+                child1.edge_dict[edge], child2.edge_dict[edge] = child2.edge_dict[edge], child1.edge_dict[edge]
+        child1.graph_from_edges()
+        child2.graph_from_edges()
+        child1.fill_from_graph()
+        child2.fill_from_graph()
+        return child1, child2
 
     while len(curr_pop) < popsize:
         curr_pop.append(new_solution())
