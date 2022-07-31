@@ -405,12 +405,12 @@ def evolutionary_algorithm(cities, k, timeout=1200, num_parents=10, popsize=20, 
         new_sol.fill_from_graph()
         return new_sol
 
-    def genetic_crossover(parent1, parent2, swap_prob):
+    def genetic_crossover(parent1, parent2, swap_prob=0.1):
         child1 = copy(parent1)
         child2 = copy(parent2)
         for edge in edges:
-            if swap_prob:
-                child1.edge_dict[edge], child2.edge_dict[edge] = child2.edge_dict[edge], child1.edge_dict[edge]
+            if random() < swap_prob:
+                child1.edge_dict[edge], child2.edge_dict[edge] = parent2.edge_dict[edge], parent2.edge_dict[edge]
         child1.graph_from_edges()
         child2.graph_from_edges()
         child1.fill_from_graph()
@@ -425,20 +425,17 @@ def evolutionary_algorithm(cities, k, timeout=1200, num_parents=10, popsize=20, 
         for sol in curr_pop:
             if best is None or best.heuristic_score < sol.heuristic_score:
                 best = sol
+        sorted_pop = sorted(curr_pop, key=lambda x: x.heuristic_score, reverse=True)
+        parents = sorted_pop[:num_parents]
+        print(f"BEST: {best.total_weight=}, {best.score=}, {best.heuristic_score=}")
+        curr_pop = parents[:] if parents_persist else []
         if genetic: # using genetic algorithm with crossover
-            new_pop = []
-            parents = sample(curr_pop, 2)
-            children = genetic_crossover(*parents)
-            new_pop.extend(children)
-            curr_pop = new_pop
+            while len(curr_pop) < popsize:
+                curr_parents = sample(parents, 2)
+                children = genetic_crossover(*curr_parents)
+                children = [child.tweak() for child in children]
+                curr_pop.extend(children)
         else: # using regular evolutionary algorithm
-            sorted_pop = sorted(curr_pop, key=lambda x: x.heuristic_score, reverse=True)
-            parents = sorted_pop[:num_parents]
-            print(f"BEST: {best.total_weight=}, {best.score=}, {best.heuristic_score=}")
-            if parents_persist:
-                curr_pop = parents[:]
-            else:
-                curr_pop = []
             for parent in parents:
                 for child_num in range(popsize // num_parents):
                     curr_pop.append(parent.tweak())
