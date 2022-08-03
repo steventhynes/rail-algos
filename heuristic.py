@@ -405,7 +405,7 @@ def evolutionary_algorithm(cities, k, timeout=1200, num_parents=10, popsize=20, 
         child2 = copy(parent2)
         for edge in edges:
             if random() < swap_prob:
-                child1.edge_dict[edge], child2.edge_dict[edge] = parent2.edge_dict[edge], parent2.edge_dict[edge]
+                child1.edge_dict[edge], child2.edge_dict[edge] = parent2.edge_dict[edge], parent1.edge_dict[edge]
         child1.graph_from_edges()
         child2.graph_from_edges()
         child1.fill_from_graph()
