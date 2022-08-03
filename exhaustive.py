@@ -63,14 +63,12 @@ def heuristic(sol, max_weight, complete, score_threshold, *args, **kwargs):
         heuristic.sorted_nodes = sorted(complete.nodes, key=lambda x: complete.nodes[x]['population'])
         return approx_evaluate_solution(sol.graph, heuristic.sorted_nodes[:20], 180) / sol.total_weight
 
-def branch_and_bound_iterative_deepening(cities, k, score_threshold, iter_depth=5, heap_max=2000, heap_after_cull=500):
-    complete = complete_solution(cities)
+def branch_and_bound_iterative_deepening(empty, complete, k, score_threshold, iter_depth=5, heap_max=2000, heap_after_cull=500):
     complete_edges = sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True)
     partial_solutions_heap = []
-    initial_sol = PartialSolution([], None, 0, *evaluate_solution(empty_solution(cities)), 0, empty_solution(cities))
+    initial_sol = PartialSolution([], None, 0, *evaluate_solution(empty), 0, empty.copy())
     hq.heappush(partial_solutions_heap, (0, initial_sol)) #priority queue
     curr_best = initial_sol
-    heap_graphs_count = 0
     try:
         while partial_solutions_heap:
             if len(partial_solutions_heap) >= heap_max:
@@ -133,7 +131,7 @@ def branch_and_bound_iterative_deepening(cities, k, score_threshold, iter_depth=
                     
     except KeyboardInterrupt:
         print(curr_best.edge_array)
-        return_graph = empty_solution(cities)
+        return_graph = empty
         edges_to_add = [complete_edges[idx][:2] for idx in range(len(curr_best.edge_array)) if curr_sol.edge_array[idx]]
         return_graph.add_edges_from(edges_to_add)
         return return_graph
@@ -141,13 +139,11 @@ def branch_and_bound_iterative_deepening(cities, k, score_threshold, iter_depth=
 
 # Start with all possible solutions and systematically eliminate them by keeping a running maximum
 # score and eliminating candidates via their upper bound.
-def branch_and_bound_breadth(cities, k, score_threshold, expansion=1000, heap_max=2000, heap_after_cull=500):
-    
-    complete = complete_solution(cities)
+def branch_and_bound_breadth(empty, complete, k, score_threshold, expansion=1000, heap_max=2000, heap_after_cull=500):
     complete_edges = sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True)
     # complete_edges = list(complete.edges.data())
     partial_solutions_heap = []
-    initial_sol = PartialSolution(None, set(), 0, *evaluate_solution(empty_solution(cities)), 0, empty_solution(cities))
+    initial_sol = PartialSolution(None, set(), 0, *evaluate_solution(empty), 0, empty.copy()))
     hq.heappush(partial_solutions_heap, (0, initial_sol)) #priority queue
     curr_best = initial_sol
     # heap_graphs_count = 0
@@ -226,7 +222,7 @@ def branch_and_bound_breadth(cities, k, score_threshold, expansion=1000, heap_ma
                 
     except KeyboardInterrupt:
         print(curr_best.edge_set)
-        return_graph = empty_solution(cities)
+        return_graph = empty
         edges_to_add = [complete_edges[idx][:2] for idx in curr_best.edge_set]
         return_graph.add_edges_from(edges_to_add)
         return return_graph

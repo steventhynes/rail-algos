@@ -5,24 +5,9 @@ import plotly.graph_objects as go
 from random import sample
 from itertools import product
 
-
 # Utility/helper functions
 
-def cities_from_file(filename):
-    cities = []
-    with open(filename, 'r') as cityfile:
-        lines = cityfile.readlines()
-        for line in lines[1:]:
-            new_city = {}
-            splitline = line.strip().split(',')
-            new_city['name'], new_city['state'] = splitline[:2]
-            new_city['population'] = int(splitline[2])
-            new_city['lat'] = float(splitline[3])
-            new_city['lon'] = float(splitline[4])
-            cities.append(('{}, {}'.format(new_city['name'], new_city["state"]), new_city))
-    return cities
-
-# from the list of cities, build the graph with no edges (the empty solution) (O(n) time)
+# from the city data, build the graph with no edges (the empty solution) (O(n) time)
 def empty_solution(cities):
     graph = nx.empty_graph(cities) #each node has the properties of the dict
     graph.add_nodes_from(cities)
@@ -43,6 +28,22 @@ def complete_solution(cities, dist_limit=10):
                 visited_edges.add((j, i))
     graph.add_weighted_edges_from(edges_to_add, weight="dist")
     return graph
+
+def cities_from_file(filename):
+    cities = []
+    with open(filename, 'r') as cityfile:
+        lines = cityfile.readlines()
+        for line in lines[1:]:
+            new_city = {}
+            splitline = line.strip().split(',')
+            new_city['name'], new_city['state'] = splitline[:2]
+            new_city['population'] = int(splitline[2])
+            new_city['lat'] = float(splitline[3])
+            new_city['lon'] = float(splitline[4])
+            cities.append(('{}, {}'.format(new_city['name'], new_city["state"]), new_city))
+    empty = empty_solution(cities)
+    complete = complete_solution(cities)
+    return empty, complete
 
 # Gets only the connected nodes and gets the all-pairs distance between them
 def all_pairs_shortest_paths(graph):
