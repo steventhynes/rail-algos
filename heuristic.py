@@ -252,17 +252,16 @@ class PossibleSolution:
 
 
 
-def generate_solution(empty_graph, complete_graph, cities, weight_limit):
+def generate_solution(empty_graph, complete_graph, weight_limit):
     # edge_prob = 400/len(complete_graph.edges)
 
-    num_edges = len(complete_graph.edges)
     new_sol = PossibleSolution()
     PossibleSolution.empty_graph = empty_graph
     PossibleSolution.complete_graph = complete_graph
     PossibleSolution.weight_limit = weight_limit
     # new_sol.graph = greedy_buildup(cities, weight_limit)
     # new_sol.graph = max_weight_spanning_tree_buildup(cities, weight_limit)
-    new_sol.graph = min_dist_spanning_tree_buildup(cities, weight_limit)
+    new_sol.graph = min_dist_spanning_tree_buildup(empty_graph, complete_graph, weight_limit)
     new_sol.edge_dict = {edge:(edge in new_sol.graph.edges) for edge in complete_graph.edges}
     new_sol.fill_from_graph()
 
@@ -271,9 +270,7 @@ def generate_solution(empty_graph, complete_graph, cities, weight_limit):
 
 # Local search with a perturbation when a local optimum is found. Perturbation is made to be different
 # from a previous local minima.
-def iterated_local_search(cities, k, global_timeout=600, local_timeout=30):
-    empty = empty_solution(cities)
-    complete = complete_solution(cities)
+def iterated_local_search(empty, complete, k, global_timeout=600, local_timeout=30):
     curr_sol = generate_solution(empty, complete, cities, k)
     curr_home = curr_sol
     curr_best = curr_sol
@@ -295,7 +292,7 @@ def iterated_local_search(cities, k, global_timeout=600, local_timeout=30):
         
         
 # Local search with a steadily decreasing chance to move to an inferior solution
-def simulated_annealing(cities, k, timeout=600, temp_mult=30):
+def simulated_annealing(empty, complete, k, timeout=600, temp_mult=30):
     def temp(elapsed_time):
         return temp_mult * (1 - (elapsed_time / timeout))
     def switch_prob(temp, better_qual, worse_qual):
@@ -305,8 +302,6 @@ def simulated_annealing(cities, k, timeout=600, temp_mult=30):
         except OverflowError:
             return 0
 
-    empty = empty_solution(cities)
-    complete = complete_solution(cities)
     curr_sol = generate_solution(empty, complete, cities, k)
     curr_best = curr_sol
     start_time = time.time()
@@ -320,8 +315,7 @@ def simulated_annealing(cities, k, timeout=600, temp_mult=30):
             curr_best = curr_sol
     return curr_best.graph
 
-def ant_colony_optimization(cities, k, global_timeout=600, local_timeout=30, evaporation=0.9, popsize=10, initial_pheromone=1, sigma=1, epsilon=1):
-    complete = complete_solution(cities)
+def ant_colony_optimization(empty, complete, k, global_timeout=600, local_timeout=30, evaporation=0.9, popsize=10, initial_pheromone=1, sigma=1, epsilon=1):
     edges = complete.edges
     pheromones = {edge:initial_pheromone for edge in edges}
     def generate_ant_trail():
@@ -330,8 +324,8 @@ def ant_colony_optimization(cities, k, global_timeout=600, local_timeout=30, eva
         for idx in range(1, len(desirabilities)):
             cumulative_desirabilities[idx] = (desirabilities[idx][0], cumulative_desirabilities[idx-1][1] + desirabilities[idx][1])
         new_sol = PossibleSolution()
-        new_sol.empty_graph = empty_solution(cities)
-        new_sol.graph = empty_solution(cities)
+        new_sol.empty_graph = empty
+        new_sol.graph = empty.copy()
         new_sol.complete_graph = complete
         new_sol.weight_limit = k
         while new_sol.graph.size('dist') < k:
@@ -381,16 +375,15 @@ def ant_colony_optimization(cities, k, global_timeout=600, local_timeout=30, eva
     return best.graph
 
             
-def evolutionary_algorithm(cities, k, timeout=1200, num_parents=10, popsize=20, parents_persist=True, genetic=False):
-    complete = complete_solution(cities)
+def evolutionary_algorithm(empty, complete, k, timeout=1200, num_parents=10, popsize=20, parents_persist=True, genetic=False):
     edges = complete.edges
     edges_list = list(edges)
     curr_pop = []
 
     def new_solution():
         new_sol = PossibleSolution()
-        new_sol.empty_graph = empty_solution(cities)
-        new_sol.graph = empty_solution(cities)
+        new_sol.empty_graph = empty
+        new_sol.graph = empty.copy()
         new_sol.complete_graph = complete
         new_sol.weight_limit = k
         while new_sol.graph.size('dist') < k:

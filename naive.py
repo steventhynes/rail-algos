@@ -4,9 +4,7 @@ from collections import deque
 from math import ceil
 
 # continually add highest-weight edges until k miles is reached.
-def greedy_buildup(cities, k):
-    empty = empty_solution(cities)
-    complete = complete_solution(cities)
+def greedy_buildup(empty, complete, k):
     sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True))
     curr_sol = empty
     cost = 0.0
@@ -20,9 +18,7 @@ def greedy_buildup(cities, k):
     return curr_sol
 
 # use 0-1 knapsack algorithm to add highest-weight edges up to k distance. O(n^2 * k) pseudo-polynomial time.
-def knapsack_buildup(cities, k):
-    empty = empty_solution(cities)
-    complete = complete_solution(cities)
+def knapsack_buildup(empty, complete, k):
     edges = list(complete.edges.data())
     table = [[0 for num in range(k+1)] for edge in range(len(edges)+1)] # table[i][j] is the maximum sum of edges[1...i] summing to at most j distance
     # fill out table
@@ -50,9 +46,8 @@ def knapsack_buildup(cities, k):
     return to_return
 
 # Build a maximum weight spanning tree, then add edges until k distance is reached. If quit is True, exits once spanning tree is reached.
-def max_weight_spanning_tree_buildup(cities, k, quit=False):
-    curr_sol = empty_solution(cities)
-    complete = complete_solution(cities)
+def max_weight_spanning_tree_buildup(empty, complete, k, quit=False):
+    curr_sol = empty
     sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True))
     cost = 0.0
     leftover_edges = deque()
@@ -79,9 +74,8 @@ def max_weight_spanning_tree_buildup(cities, k, quit=False):
     return curr_sol
 
 # Build a minimum distance spanning tree, then add edges until k distance is reached. If quit is True, exits once spanning tree is reached.
-def min_dist_spanning_tree_buildup(cities, k, quit=False):
-    curr_sol = empty_solution(cities)
-    complete = complete_solution(cities)
+def min_dist_spanning_tree_buildup(empty, complete, k, quit=False):
+    curr_sol = empty
     sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: x[2]['dist']))
     cost = 0.0
     leftover_edges = deque()
@@ -106,7 +100,3 @@ def min_dist_spanning_tree_buildup(cities, k, quit=False):
                 curr_sol.remove_edge(new_edge[0], new_edge[1])
                 return curr_sol
     return curr_sol
-
-# Find shortest path spanning trees (Dijkstra) for highest-weighted trees until k miles is reached.
-def shortest_path_spanning_tree_buildup(cities, k):
-    pass
