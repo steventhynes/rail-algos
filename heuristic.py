@@ -73,10 +73,7 @@ class PossibleSolution:
             while True:
                 nonlocal add_count
                 nonlocal add_weight
-                edge1 = choice([edge for edge in self.edge_dict])
-                edge2 = edge1
-                while edge2 == edge1:
-                    edge2 = choice([edge for edge in self.edge_dict])
+                edge1, edge2 = sample([edge for edge in self.edge_dict], 2)
                 if random() < 0.5:
                     new1 = (edge1[0], edge2[0])
                     new2 = (edge1[1], edge2[1])
@@ -105,13 +102,10 @@ class PossibleSolution:
                 self.edge_dict[edge2] = False
                 break
         
-        def add_shortest_path(connected_only=True):
+        def add_shortest_path(connected_only=False):
             nonlocal add_count
             nonlocal add_weight
-            node1 = choice([node for node in self.graph.nodes if (not connected_only or self.graph.edges(node))])
-            node2 = node1
-            while node2 == node1:
-                node2 = choice([node for node in self.graph.nodes])
+            node1, node2 = sample([node for node in self.graph.nodes if (not connected_only or self.graph.edges(node))], 2)
             try:
                 # shortest_path = nx.shortest_path(self.complete_graph, node1, node2, weight='dist')
                 shortest_path = nx.shortest_path(self.complete_graph, node1, node2, weight=lambda end1, end2, dict: 1 / score_calc(self.complete_graph.nodes[end1]['population'], self.complete_graph.nodes[end2]['population'], dict['dist']))
@@ -132,14 +126,14 @@ class PossibleSolution:
             nonlocal add_weight
             nonlocal remove_count
             nonlocal remove_weight
-            node1 = choice([node for node in self.graph.nodes])
-            node2 = node1
-            while node2 == node1:
-                node2 = choice([node for node in self.graph.nodes])
+            node1 = choice([node for node in self.graph.nodes if self.graph.edges(node)])
+            shortest_paths_from_node1 = nx.shortest_path(self.graph, source=node1, weight='dist')
+            # print(shortest_paths_from_node1)
+            node2 = choice(list(shortest_paths_from_node1.keys()))
             try:
+                old_shortest_path = shortest_paths_from_node1[node2]
+                new_shortest_path = nx.shortest_path(self.complete_graph, node1, node2, weight=lambda end1, end2, dict: 1 / score_calc(self.complete_graph.nodes[end1]['population'], self.complete_graph.nodes[end2]['population'], dict['dist']**2))
                 # new_shortest_path = nx.shortest_path(self.complete_graph, node1, node2, weight='dist')
-                old_shortest_path = nx.shortest_path(self.graph, node1, node2, weight=lambda end1, end2, dict: 1 / score_calc(self.complete_graph.nodes[end1]['population'], self.complete_graph.nodes[end2]['population'], dict['dist']))
-                new_shortest_path = nx.shortest_path(self.complete_graph, node1, node2, weight=lambda end1, end2, dict: 1 / score_calc(self.complete_graph.nodes[end1]['population'], self.complete_graph.nodes[end2]['population'], dict['dist']))
             except nx.NetworkXNoPath:
                 print("no path found")
                 return
@@ -161,8 +155,9 @@ class PossibleSolution:
                     add_weight += self.complete_graph.edges[new_edge]['dist']
 
 
-        add_shortest_path(connected_only=True)
+        add_shortest_path(connected_only=False)
         while self.total_weight + add_weight - remove_weight > self.weight_limit:
+            # replace_shortest_path()
             selection = choice([edge for edge in self.graph.edges])
             if new_sol.edge_dict[selection]:
                 new_sol.edge_dict[selection] = False
