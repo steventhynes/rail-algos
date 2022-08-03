@@ -267,7 +267,7 @@ def generate_solution(empty_graph, complete_graph, weight_limit):
 # Local search with a perturbation when a local optimum is found. Perturbation is made to be different
 # from a previous local minima.
 def iterated_local_search(empty, complete, k, global_timeout=600, local_timeout=30):
-    curr_sol = generate_solution(empty, complete, cities, k)
+    curr_sol = generate_solution(empty, complete, k)
     curr_home = curr_sol
     curr_best = curr_sol
     global_start_time = time.time()
@@ -298,7 +298,7 @@ def simulated_annealing(empty, complete, k, timeout=600, temp_mult=30):
         except OverflowError:
             return 0
 
-    curr_sol = generate_solution(empty, complete, cities, k)
+    curr_sol = generate_solution(empty, complete, k)
     curr_best = curr_sol
     start_time = time.time()
     while time.time() - start_time < timeout:
