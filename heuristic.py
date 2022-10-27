@@ -1,8 +1,9 @@
 from copy import copy
 from util import *
 from random import random, choice
-from naive import max_weight_spanning_tree_buildup, min_dist_spanning_tree_buildup
 import time
+from naive import greedy_buildup, max_weight_spanning_tree_buildup, min_dist_spanning_tree_buildup
+from exhaustive import branch_and_bound_iterative_deepening
 from dataclasses import dataclass
 from math import exp, ceil
 
@@ -39,8 +40,9 @@ class PossibleSolution:
 
     def graph_from_edges(self):
         self.graph = self.empty_graph.copy()
+        # print(self.graph.size(weight='dist'))
         for edge in self.edge_dict:
-            if self.edge_dict[edge]:
+            if self.edge_dict[edge] == True:
                 self.graph.add_edge(*edge, dist=self.complete_graph.edges[edge]['dist'])
 
     # A small deviation from the solution
@@ -154,8 +156,49 @@ class PossibleSolution:
                     add_count += 1
                     add_weight += self.complete_graph.edges[new_edge]['dist']
 
+        def optimize_subgraph(circle_radius=5):
+            nonlocal add_count
+            nonlocal add_weight
+            nonlocal remove_count
+            nonlocal remove_weight
+            center_node = choice(list(self.complete_graph.nodes))
+            nodes_in_circle = [node for node in self.complete_graph.nodes if (center_node, node) in self.complete_graph.edges and self.complete_graph.edges[(center_node, node)]['dist'] <= circle_radius or (node, center_node) in self.complete_graph.edges and self.complete_graph.edges[(node, center_node)]['dist'] <= circle_radius]
+            nodes_in_circle.append(center_node)
+            # complete_subgraph = self.complete_graph.subgraph(nodes_in_circle)
+            # print(len(nodes_in_circle))
+            complete_subgraph = nx.induced_subgraph(self.complete_graph, nodes_in_circle)
+            # curr_subgraph = self.graph.subgraph(nodes_in_circle)
+            curr_subgraph = nx.induced_subgraph(self.graph, nodes_in_circle)
+            # print(f"{self.total_weight=}")
+            # print(f"{self.graph.size(weight='dist')=}")
+            weight = curr_subgraph.size(weight='dist')
+            empty_subgraph = nx.create_empty_copy(curr_subgraph)
+            optimized_subgraph = min_dist_spanning_tree_buildup(empty_subgraph, complete_subgraph, weight)
+            for edge in curr_subgraph.edges:
+                if edge not in self.edge_dict:
+                    edge = edge[1], edge[0]
+                if new_sol.edge_dict[edge] == True:
+                    new_sol.edge_dict[edge] = False
+                    remove_count += 1
+                    remove_weight += self.complete_graph.edges[edge]['dist']
+            for edge in optimized_subgraph.edges:
+                if edge not in self.edge_dict:
+                    edge = edge[1], edge[0]
+                if new_sol.edge_dict[edge] == False:
+                    new_sol.edge_dict[edge] = True
+                    add_count += 1
+                    add_weight += self.complete_graph.edges[edge]['dist']
+            # print(f"{sum((self.complete_graph.edges[edge]['dist'] for edge in new_sol.edge_dict if new_sol.edge_dict[edge] == True))=}")
 
-        add_shortest_path(connected_only=False)
+        def random_tweak():
+            rand = random() * 10
+            if 1 < rand < 6:
+                optimize_subgraph(rand)
+            else:
+                add_shortest_path()
+        # add_shortest_path(connected_only=False)
+        random_tweak()
+        # print(f"{self.total_weight + add_weight - remove_weight=}")
         while self.total_weight + add_weight - remove_weight > self.weight_limit:
             # replace_shortest_path()
             selection = choice([edge for edge in self.graph.edges])
@@ -166,6 +209,7 @@ class PossibleSolution:
         # print(f"tweak: {add_count=} of {(len(self.complete_graph.edges)-len(self.graph.edges))=}, {remove_count=} of {len(self.graph.edges)}")
         new_sol.graph_from_edges()
         new_sol.fill_from_graph()
+        # print(f"{new_sol.graph.size(weight='dist')=}")
         print(f"TWEAK: {new_sol.total_weight=}, {new_sol.score=}, {new_sol.heuristic_score=}")
         return new_sol
 
@@ -220,7 +264,7 @@ class PossibleSolution:
                 new_sol.edge_dict[selection] = False
                 remove_count += 1
                 remove_weight += self.complete_graph.edges[selection]['dist']
-        print(self.total_weight + add_weight - remove_weight)
+        # print(self.total_weight + add_weight - remove_weight)
         print(f"perturb: {add_count=} of {(len(self.complete_graph.edges)-len(self.graph.edges))=}, {remove_count=} of {len(self.graph.edges)}")
         new_sol.graph_from_edges()
         new_sol.fill_from_graph()
@@ -234,13 +278,13 @@ class PossibleSolution:
         try:
             # print("try")
             # return approx_evaluate_solution(self.graph, self.sorted_nodes[:20], 0)
-            return approx_evaluate_solution(self.graph, PossibleSolution.sorted_nodes[:500], 0)
+            return approx_evaluate_solution(self.graph, PossibleSolution.sorted_nodes[:len(self.graph.nodes)//4], 0)
             # return approx_evaluate_solution(self.graph, [], len(self.graph))
         except AttributeError:
             # print("except")
             PossibleSolution.sorted_nodes = sorted(self.complete_graph.nodes, key=lambda x: self.complete_graph.nodes[x]['population'])
             # return approx_evaluate_solution(self.graph, self.sorted_nodes[:20], 0)
-            return approx_evaluate_solution(self.graph, PossibleSolution.sorted_nodes[:500], 0)
+            return approx_evaluate_solution(self.graph, PossibleSolution.sorted_nodes[:len(self.graph.nodes)//4], 0)
             # return approx_evaluate_solution(self.graph, [], len(self.graph))
 
     def _get_heuristic_score(self):
@@ -252,7 +296,7 @@ def generate_solution(empty_graph, complete_graph, weight_limit):
     # edge_prob = 400/len(complete_graph.edges)
 
     new_sol = PossibleSolution()
-    PossibleSolution.empty_graph = empty_graph
+    PossibleSolution.empty_graph = empty_graph.copy()
     PossibleSolution.complete_graph = complete_graph
     PossibleSolution.weight_limit = weight_limit
     # new_sol.graph = greedy_buildup(cities, weight_limit)
@@ -288,12 +332,11 @@ def iterated_local_search(empty, complete, k, global_timeout=600, local_timeout=
         
         
 # Local search with a steadily decreasing chance to move to an inferior solution
-def simulated_annealing(empty, complete, k, timeout=600, temp_mult=30):
+def simulated_annealing(empty, complete, k, timeout=600, temp_mult=2500):
     def temp(elapsed_time):
         return temp_mult * (1 - (elapsed_time / timeout))
     def switch_prob(temp, better_qual, worse_qual):
         try:
-            print(exp((worse_qual - better_qual) / temp))
             return exp((worse_qual - better_qual) / temp)
         except OverflowError:
             return 0
@@ -305,13 +348,15 @@ def simulated_annealing(empty, complete, k, timeout=600, temp_mult=30):
         print(f"BEST: {curr_best.total_weight=}, {curr_best.score=}, {curr_best.heuristic_score=}")
         print(f"CURRENT: {curr_sol.total_weight=}, {curr_sol.score=}, {curr_sol.heuristic_score=}")
         new_sol = curr_sol.tweak()
-        if new_sol.heuristic_score > curr_sol.heuristic_score or random() < switch_prob(temp(time.time() - start_time), curr_sol.heuristic_score, new_sol.heuristic_score):
+        prob = switch_prob(temp(time.time() - start_time), curr_sol.heuristic_score, new_sol.heuristic_score)
+        print(prob)
+        if new_sol.heuristic_score > curr_sol.heuristic_score or random() < prob:
             curr_sol = new_sol
         if curr_sol.heuristic_score > curr_best.heuristic_score:
             curr_best = curr_sol
     return curr_best.graph
 
-def ant_colony_optimization(empty, complete, k, global_timeout=600, local_timeout=30, evaporation=0.9, popsize=10, initial_pheromone=1, sigma=1, epsilon=1):
+def ant_colony_optimization(empty, complete, k, global_timeout=600, local_timeout=30, evaporation=0.9, popsize=10, initial_pheromone=1, sigma=1, epsilon=0):
     edges = complete.edges
     pheromones = {edge:initial_pheromone for edge in edges}
     
@@ -372,7 +417,7 @@ def ant_colony_optimization(empty, complete, k, global_timeout=600, local_timeou
     return best.graph
 
             
-def evolutionary_algorithm(empty, complete, k, timeout=1200, num_parents=10, popsize=20, parents_persist=True, genetic=False):
+def evolutionary_algorithm(empty, complete, k, timeout=600, num_parents=10, popsize=20, parents_persist=True, genetic=False):
     edges = complete.edges
     edges_list = list(edges)
     curr_pop = []
