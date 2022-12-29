@@ -6,7 +6,7 @@ from math import ceil
 # continually add highest-weight edges until k miles is reached.
 def greedy_buildup(empty, complete, k):
     sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True))
-    curr_sol = empty
+    curr_sol = empty.copy()
     cost = 0.0
     while sorted_edges:
         new_edge = sorted_edges.popleft()
@@ -33,7 +33,7 @@ def knapsack_buildup(empty, complete, k):
     # backtrack to get edge set
     i = len(edges)
     j = k
-    to_return = empty
+    to_return = empty.copy()
     while True:
         if i == 0:
             break
@@ -47,7 +47,7 @@ def knapsack_buildup(empty, complete, k):
 
 # Build a maximum weight spanning tree, then add edges until k distance is reached. If quit is True, exits once spanning tree is reached.
 def max_weight_spanning_tree_buildup(empty, complete, k, quit=False):
-    curr_sol = empty
+    curr_sol = empty.copy()
     sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: score_calc(complete.nodes[x[0]]['population'], complete.nodes[x[1]]['population'], x[2]['dist']), reverse=True))
     cost = 0.0
     leftover_edges = deque()
@@ -75,7 +75,7 @@ def max_weight_spanning_tree_buildup(empty, complete, k, quit=False):
 
 # Build a minimum distance spanning tree, then add edges until k distance is reached. If quit is True, exits once spanning tree is reached.
 def min_dist_spanning_tree_buildup(empty, complete, k, quit=False):
-    curr_sol = empty
+    curr_sol = empty.copy()
     sorted_edges = deque(sorted(complete.edges.data(), key=lambda x: x[2]['dist']))
     cost = 0.0
     leftover_edges = deque()
