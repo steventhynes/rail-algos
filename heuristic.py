@@ -3,7 +3,6 @@ from util import *
 from random import random, choice
 import time
 from naive import greedy_buildup, max_weight_spanning_tree_buildup, min_dist_spanning_tree_buildup
-from exhaustive import branch_and_bound_iterative_deepening
 from dataclasses import dataclass
 from math import exp, ceil
 
